@@ -1,0 +1,604 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- ################################################################################################### 
+ @author   Persistent Systems 
+ @date     3-28-2017
+ @description  - This file has the definations for salesforce data insert,upsert,export operations. 
+				 This is the file which need to be updated for the additional operations like import,
+				 delete operations.Currently, it has target for upsert operations, create the new targets
+				 based on the need in this file.
+				  
+#########################################################################################################
+-->
+
+<project name="Tasks for Salesforce data operation" basedir="." xmlns:sf="antlib:com.salesforce">	
+    
+    <property name="dataLoaderAPIVersion" value="29.0.0" />
+	
+    <property environment="env"/>	
+	<!-- Path required for ObjectFileProcessor -->
+	<path id="third-party-classpath">
+		<fileset dir="./ObjectFileProcessor/lib">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+	
+	<taskdef name="processCS" 
+             classname="UpsertCustomSettings" classpath="CISupport/lib/CustomSettingsProcessor.jar"/>
+	<taskdef name="mergeCustomSettings" 
+             classname="ConfigDataMerging" classpath="CISupport/lib/CustomSettingsProcessor.jar"/>
+
+    <macrodef name="sfUpsert">
+     <attribute name="object"/>
+	<attribute name="basedir"/>
+	<attribute name="orgname"/>
+	<attribute name="username"/>
+	<attribute name="password"/>
+	<attribute name="orgserver"/>
+	<attribute name="externalIdField"/>
+	<attribute name="dataLoaderAPIVersion"/>
+	<attribute name="proxyhostname"/>
+	<attribute name="proxyport"/>	
+	<!--<attribute name="proxyusername"/>
+	<attribute name="proxypasswordencrypted"/>
+	-->
+
+	<sequential>
+	    <echo message="Upserting @{object}"/>
+		<mkdir dir="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+	    <copy file="@{basedir}/${dataloader.property.path}/datascripts/template-upsert-process-conf.xml" tofile="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml" overwrite="true" failonerror="true"/>
+	    <replace file="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml">
+	        <replacefilter token="_ORGSERVER_" value="@{orgserver}"/>
+	        <replacefilter token="_USERNAME_" value="@{username}"/>
+	        <replacefilter token="_ENCRYPTED_PASSWORD_" value="@{password}"/>
+	        <replacefilter token="_ENCRYPTION_KEY_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/dataloader_encryption_key.txt"/>
+	        <replacefilter token="_DEBUG_MSG_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/debug.log"/>
+	        <replacefilter token="_OBJECT_" value="@{object}"/>
+	        <replacefilter token="_DATA_FILENAME_" value="@{basedir}/${dataloader.property.path}/datascripts/datafiles/@{object}Upsert.csv"/>
+	        <replacefilter token="_MAPPING_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/mappingfiles/@{object}UpsertMap.sdl"/>
+	        <replacefilter token="_OUTPUT_SUCCESS_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Upsert_success.csv"/>
+	        <replacefilter token="_OUTPUT_ERROR_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Upsert_error.csv"/>
+	    	<replacefilter token="_EXTERNAL_ID_FIELD_" value="@{externalIdField}"/>
+	    	<replacefilter token="_PROCESS_NAME_" value="@{object}UpsertProcess"/>
+			<replacefilter token="_PROXY_HOST_" value="@{proxyhostname}"/>
+			<replacefilter token="_PROXY_PORT_" value="@{proxyport}"/>
+			<replacefilter token="_PROXY_USER_NAME_" value="@{proxyusername}"/>
+			<replacefilter token="_PROXY_PASSWORD_" value="@{proxypasswordencrypted}"/>	
+	    </replace>
+            <java classname="com.salesforce.dataloader.process.ProcessRunner" classpath="@{basedir}/${ant.external.lib}/dataloader-@{dataLoaderAPIVersion}-uber.jar" failonerror="true">
+	        <sysproperty key="salesforce.config.dir" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+	        <arg line="process.name=upsertObject"/>
+	    </java>
+        </sequential>
+    </macrodef>
+	
+	<macrodef name="sfInsert">
+    <attribute name="object"/>
+	<attribute name="basedir"/>
+	<attribute name="orgname"/>
+	<attribute name="username"/>
+	<attribute name="password"/>
+	<attribute name="orgserver"/>
+	<attribute name="externalIdField"/>
+	<attribute name="dataLoaderAPIVersion"/>
+	<attribute name="proxyhostname"/>
+	<attribute name="proxyport"/>	
+	<!--
+	<attribute name="proxyusername"/>
+	<attribute name="proxypasswordencrypted"/>
+	-->
+	<sequential>
+	    <echo message="Inserting @{object}"/>
+		<mkdir dir="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+	    <copy file="@{basedir}/${dataloader.property.path}/datascripts/template-insert-process-conf.xml" tofile="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml" overwrite="true" failonerror="true"/>
+	    <replace file="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml">
+	        <replacefilter token="_ORGSERVER_" value="@{orgserver}"/>
+	        <replacefilter token="_USERNAME_" value="@{username}"/>
+	        <replacefilter token="_ENCRYPTED_PASSWORD_" value="@{password}"/>
+	        <replacefilter token="_ENCRYPTION_KEY_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/dataloader_encryption_key.txt"/>
+	        <replacefilter token="_DEBUG_MSG_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/debug.log"/>
+	        <replacefilter token="_OBJECT_" value="@{object}"/>
+	        <replacefilter token="_DATA_FILENAME_" value="@{basedir}/${dataloader.property.path}/datascripts/datafiles/@{object}Insert.csv"/>
+	        <replacefilter token="_MAPPING_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/mappingfiles/@{object}InsertMap.sdl"/>
+	        <replacefilter token="_OUTPUT_SUCCESS_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Insert_success.csv"/>
+	        <replacefilter token="_OUTPUT_ERROR_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Insert_error.csv"/>
+	    	<replacefilter token="_EXTERNAL_ID_FIELD_" value="@{externalIdField}"/>
+	    	<replacefilter token="_PROCESS_NAME_" value="@{object}InsertProcess"/>
+			<replacefilter token="_PROXY_HOST_" value="@{proxyhostname}"/>
+			<replacefilter token="_PROXY_PORT_" value="@{proxyport}"/>
+			<!--
+			<replacefilter token="_PROXY_USER_NAME_" value="@{proxyusername}"/>
+			<replacefilter token="_PROXY_PASSWORD_" value="@{proxypasswordencrypted}"/>
+			-->
+		</replace>
+            <java classname="com.salesforce.dataloader.process.ProcessRunner" classpath="@{basedir}/${ant.external.lib}/dataloader-@{dataLoaderAPIVersion}-uber.jar" failonerror="true">
+	        <sysproperty key="salesforce.config.dir" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+	        <arg line="process.name=insertObject"/>
+	    </java>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="sfExport">
+        <attribute name="object"/>
+		<attribute name="basedir"/>
+		<attribute name="orgname"/>
+		<attribute name="username"/>
+		<attribute name="password"/>
+		<attribute name="orgserver"/>
+		<attribute name="soql"/>
+		<attribute name="dataLoaderAPIVersion"/>
+		<attribute name="proxyhostname"/>
+		<attribute name="proxyport"/>	
+	<!--	<attribute name="proxyusername"/>
+		<attribute name="proxypasswordencrypted"/>
+	-->
+        <sequential>
+			<echo>${line.separator} ${line.separator} [Step 1] INSIDE EXPORT MACRO ${line.separator}</echo>
+            <echo message="Exporting ${object}"/>
+			
+            <mkdir dir="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+            <copy file="@{basedir}/${dataloader.property.path}/datascripts/template-export-process-conf.xml" tofile="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml" overwrite="true" failonerror="true"/>
+            <replace file="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml">
+                <replacefilter token="_ORGSERVER_" value="@{orgserver}"/>
+                <replacefilter token="_USERNAME_" value="@{username}"/>
+                <replacefilter token="_ENCRYPTED_PASSWORD_" value="@{password}"/>
+                <replacefilter token="_ENCRYPTION_KEY_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/dataloader_encryption_key.txt"/>
+                <replacefilter token="_DEBUG_MSG_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/debug.log"/>
+                <replacefilter token="_OBJECT_" value="@{object}"/>
+                <replacefilter token="_DATA_FILENAME_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Export.csv"/>
+                <replacefilter token="_MAPPING_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/mappingfiles/@{object}ExportMap.sdl"/>
+                <replacefilter token="_OUTPUT_SUCCESS_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Export_success.csv"/>
+                <replacefilter token="_OUTPUT_ERROR_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Export_error.csv"/>
+                <replacefilter token="_EXTRACTION_SOQL_" value="@{soql}"/>
+				<replacefilter token="_PROXY_HOST_" value="@{proxyhostname}"/>
+				<replacefilter token="_PROXY_PORT_" value="@{proxyport}"/>
+				<!--
+				<replacefilter token="_PROXY_USER_NAME_" value="@{proxyusername}"/>
+				<replacefilter token="_PROXY_PASSWORD_" value="@{proxypasswordencrypted}"/>
+				-->
+			</replace>
+	<echo>${line.separator} ${line.separator} [Step 2] CALLING JAVA CODE NOW ${line.separator}</echo>
+            <java classname="com.salesforce.dataloader.process.ProcessRunner" classpath="@{basedir}/${ant.external.lib}/dataloader-29.0.0-uber.jar" failonerror="true">
+                <sysproperty key="salesforce.config.dir" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+                <arg line="process.name=exportObject"/>
+            </java>
+        </sequential>
+    </macrodef>
+
+	<macrodef name="sfDeleteAll">
+		<attribute name="object"/>
+		<attribute name="basedir"/>
+		<attribute name="orgname"/>
+		<attribute name="username"/>
+		<attribute name="password"/>
+		<attribute name="orgserver"/>
+		<attribute name="dataLoaderAPIVersion"/>
+		<attribute name="proxyhostname"/>
+		<attribute name="proxyport"/>	
+	<!--	<attribute name="proxyusername"/>
+		<attribute name="proxypasswordencrypted"/>
+	-->	
+		<sequential>
+			<echo message="Deleting @{object}"/>
+			<mkdir dir="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+			<copy file="@{basedir}/${dataloader.property.path}/datascripts/template-hard-delete-process-conf.xml" tofile="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml" overwrite="true" failonerror="true"/>
+			
+			<replace file="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml">
+				<replacefilter token="_ORGSERVER_" value="@{orgserver}"/>
+				<replacefilter token="_USERNAME_" value="@{username}"/>
+				<replacefilter token="_ENCRYPTED_PASSWORD_" value="@{password}"/>
+				<replacefilter token="_ENCRYPTION_KEY_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/dataloader_encryption_key.txt"/> 
+				<replacefilter token="_DEBUG_MSG_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/debug.log"/> 
+				<replacefilter token="_OBJECT_" value="@{object}"/>
+				<replacefilter token="_DATA_FILENAME_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Export.csv"/>
+				<replacefilter token="_MAPPING_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/mappingfiles/DeleteMap.sdl"/>  
+				<replacefilter token="_OUTPUT_SUCCESS_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Delete_success.csv"/>
+				<replacefilter token="_OUTPUT_ERROR_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Delete_error.csv"/>
+				<replacefilter token="_EXTERNAL_ID_FIELD_" value="@{externalIdField}"/>
+				<replacefilter token="_PROXY_HOST_" value="@{proxyhostname}"/>
+				<replacefilter token="_PROXY_PORT_" value="@{proxyport}"/>
+	     </replace>
+		 <java classname="com.salesforce.dataloader.process.ProcessRunner" classpath="@{basedir}/${ant.external.lib}/dataloader-@{dataLoaderAPIVersion}-uber.jar" failonerror="true">
+	        <sysproperty key="salesforce.config.dir" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+	        <arg line="process.name=deleteObjects"/>
+	    </java>
+		</sequential>
+	</macrodef>
+	
+	
+	
+    <target name="initDataDirectory" description="Removes and re-creates a blank data directory in orgs/${orgname}">
+        <delete dir="${basedir}/${dataloader.property.path}/orgs/${orgname}/data"/>
+    </target>
+
+    <target name="exportData" description="Export Salesforce objects">
+        <sfExport object="${object}" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="${soql}" />
+    </target>
+	
+    <target name="upsertData" description="Upsert Salesforce objects">	
+		<echo>${line.separator} *********Upsert operation start*************</echo>
+		<echo>${sf.orgserver} *********sf orgserver*************</echo>
+		<echo>${basedir} *********basedir*************</echo>
+		<echo>${orgname} *********orgname*************</echo>		
+	
+        <sfUpsert object="Employee__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		proxyusername="${proxy.user.name}" proxypasswordencrypted="${proxy.user.passwordencrypted}" externalIdField="email__c" />		 
+		<sfInsert object="Product2" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		proxyusername="${proxy.user.name}" proxypasswordencrypted="${proxy.user.passwordencrypted}" externalIdField="null" />		
+    </target>
+
+    <target name="deleteAndUpsertData" description="Upsert Salesforce objects">	
+		<echo>${line.separator} *********Delete and Upsert operation start*************</echo>
+		<echo>${sf.orgserver} *********sf orgserver*************</echo>
+		<echo>${basedir} *********basedir*************</echo>
+		<echo>${orgname} *********orgname*************</echo>		
+
+        <!-- <sfDeleteAll object="Student__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}" />
+		-->
+        <sfUpsert object="Student__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		proxyusername="${proxy.user.name}" proxypasswordencrypted="${proxy.user.passwordencrypted}" externalIdField="null" />		 
+
+    </target>
+    <target name="updateDataFiles" description="Refreshes the data files found in datascripts/datafiles from a specified org's data directory.  This expects the exportData target to have been run first to generate output CSV data load files.  Invoke with -Dorg=[org name, ex. asdevqa] to specify the org to copy files from." >
+        <copy todir="${basedir}/${dataloader.property.path}/datascripts/datafiles">
+            <fileset dir="${basedir}/${dataloader.property.path}/orgs/${org}/data" includes="**/*Export.csv"/>
+	    <mapper type="glob" from="*Export.csv" to="*Insert.csv"/>
+        </copy>
+    </target>
+	
+	<!-- Compiles the ObjectFileProcessor java code -->
+	<target name="compile">
+       <javac srcdir="./ObjectFileProcessor/src" includeantruntime="true" includes="SlaProcessFileProcessor.java" destdir=".">
+			<classpath refid="third-party-classpath" />
+	   </javac>
+	   <javac srcdir="./ObjectFileProcessor/src" includeantruntime="true" includes="ObjectFileProcessor.java" destdir=".">
+			<classpath refid="third-party-classpath" />
+	   </javac>
+	    <javac srcdir="./ObjectFileProcessor/src" includeantruntime="true" includes="ExternalIdReplacement.java" destdir=".">
+			<classpath refid="third-party-classpath" />
+	   </javac>
+	</target>
+	
+	<target name="exportTestData" description="Export Salesforce objects" depends="compile">
+		
+		<if>
+			<equals arg1="${use.proxy}" arg2="false" />
+			<then>
+				  <property name="proxy.host.name" value=""/>
+				  <property name="proxy.port.no" value=""/>
+			</then>
+		</if>
+		 
+		<sfUpsert object="ACETHippaCategoryRule__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="HippaExternalID__c"/>
+		
+		<sfUpsert object="Bookmark_Links__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="BookmarkExternalID__c"/>
+		
+		<sfUpsert object="Call_Topic_Access__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="CallTopicAccessExternalID__c"/>
+		
+		<sfUpsert object="Material_Forms__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="MaterialFormsExternalID__c"/>
+		
+		<sfUpsert object="Routing_Configuration__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="RoutingConfigurationExternalID__c"/>
+		
+		<sfUpsert object="Swivel_Topic__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="SwivelTopicExternalID__c"/>
+		
+		<sfUpsert object="TTS_Access__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="TTSAccessExternalID__c"/>
+		
+		<sfUpsert object="Validation_Rule__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="Rule__c"/>
+		
+		
+		<!--ENTITLEMENT DATALOADER BEGINS -->
+		<!--Export SlaProcess -->
+		<sfExport object="SlaProcess" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="Select Id, Name, NameNorm FROM SlaProcess" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+		<!--Export Account -->
+		<sfExport object="Account" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="Select Id, Name FROM Account" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+		<!-- Call Java code -->
+		<java classname="SlaProcessFileProcessor" fork="true">
+			<classpath>
+				<pathelement location="." />
+				<path refid="third-party-classpath" />
+			</classpath>
+			<arg value="${basedir}/${dataloader.property.path}/datascripts/datafiles/SlaProcessUpsert.csv"/>
+			<arg value="${basedir}/${dataloader.property.path}/orgs/${orgname}/data/SlaProcessExport.csv"/>
+			<arg value="${basedir}/${dataloader.property.path}/datascripts/datafiles/EntitlementUpsert.csv"/>
+			<arg value="${basedir}/${dataloader.property.path}/orgs/${orgname}/data/AccountExport.csv"/>
+			<arg value='UHG'/>
+	   </java>
+		<!-- Upsert Entitlement -->
+		<sfUpsert object="Entitlement" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="EntitlementExternalID__c"/>
+		<!--ENTITLEMENT DATALOADER ENDS-->
+		<!-- Entitlement Assignemnt Upsert -->
+		<java classname="ExternalIdReplacement" fork="true">
+			<classpath>
+				<pathelement location="." />
+				<path refid="third-party-classpath" />
+			</classpath>
+			<arg value="${basedir}/${dataloader.property.path}/datascripts/datafiles/EntitlementUpsert.csv"/>
+			<arg value="${basedir}/${dataloader.property.path}/datascripts/datafiles/EntitlementAssignment__cUpsert.csv"/>
+			<arg value='ENTITLEMENTNAME__C'/>
+			<arg value='ENTITLEMENTEXTERNALID__C'/>
+			
+	   </java>
+	   
+	   <sfUpsert object="EntitlementAssignment__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="EntitlementAssignmentExternalID__c"/>
+		<!-- Entitle assignment upsert -->
+		
+		<!-- Custom Settings-->
+		<sfExport object="ACETCoveragesTypes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETCoveragesTypes__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETCoveragesTypes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETCoveragesTypes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		<!--****-->
+		<sfExport object="ACETEligibilityCalculator__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETEligibilityCalculator__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETEligibilityCalculator__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETEligibilityCalculator__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		<!--****-->
+		<sfExport object="ACETEncoderProConfig__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETEncoderProConfig__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETEncoderProConfig__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETEncoderProConfig__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		<!--****-->
+		<sfExport object="ACETEntitlementReason__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETEntitlementReason__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETEntitlementReason__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETEntitlementReason__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		<!--****-->
+		<sfExport object="ACETGovCoveragesTypes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETGovCoveragesTypes__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETGovCoveragesTypes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETGovCoveragesTypes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		<!--****-->
+		<sfExport object="ACETLanguage__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETLanguage__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETLanguage__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETLanguage__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		<!--****-->
+		<sfExport object="ACETLetterTemplates__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETLetterTemplates__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETLetterTemplates__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETLetterTemplates__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		<!--****-->
+		<sfExport object="ACETLetterVisiblebyCalltopicandProfile__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETLetterVisiblebyCalltopicandProfile__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETLetterVisiblebyCalltopicandProfile__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETLetterVisiblebyCalltopicandProfile__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		<!--****-->
+		<sfExport object="ACETOnshoreIndicatorVerbiage__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETOnshoreIndicatorVerbiage__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETOnshoreIndicatorVerbiage__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETOnshoreIndicatorVerbiage__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		<!--****-->
+		<sfExport object="ACETOtherInsuranceType__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETOtherInsuranceType__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETOtherInsuranceType__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETOtherInsuranceType__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		<!--****-->
+		<sfExport object="ACETRelationshipCodes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETRelationshipCodes__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETRelationshipCodes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETRelationshipCodes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		<!--****-->
+	
+		<!-- Custom Settings-->
+		<!--
+		<sfExport object="ACETLetterTemplates__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETLetterTemplates__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETLetterTemplates__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETLetterTemplates__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}"
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+	-->
+<!--TBR		<sfExport object="ACETEligibilityCalculator__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETEligibilityCalculator__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETEligibilityCalculator__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETEligibilityCalculator__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+
+		<sfExport object="ACETLetterVisiblebyCalltopicandProfile__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETLetterVisiblebyCalltopicandProfile__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETLetterVisiblebyCalltopicandProfile__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETLetterVisiblebyCalltopicandProfile__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />
+		
+
+		<sfExport object="ACETOrgNameToSwivelEndpointMap__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETOrgNameToSwivelEndpointMap__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETOrgNameToSwivelEndpointMap__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETOrgNameToSwivelEndpointMap__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		 externalIdField="null" />	
+
+		<sfExport object="ACETRelationshipCodes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETRelationshipCodes__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETRelationshipCodes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETRelationshipCodes__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		 externalIdField="null" />
+		
+		
+		<sfExport object="Bookmark_links__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from Bookmark_links__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="Bookmark_links__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="Bookmark_links__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />		
+
+		<sfExport object="Call_Topic__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from Call_Topic__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="Call_Topic__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="Call_Topic__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		 externalIdField="null" />		
+
+		<sfExport object="Call_Topic_Access__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from Call_Topic_Access__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="Call_Topic_Access__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="Call_Topic_Access__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		 externalIdField="null" />
+to be removed-->		
+<!--		
+		<sfExport object="EntitlementAssignment__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from EntitlementAssignment__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="EntitlementAssignment__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="EntitlementAssignment__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		proxyusername="${proxy.user.name}" proxypasswordencrypted="${proxy.user.passwordencrypted}" externalIdField="null" />		
+-->		
+<!--TBR
+		
+		
+		
+		<sfExport object="Material_Forms__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from Material_Forms__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="Material_Forms__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="Material_Forms__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />	
+to be removed-->			
+<!--		
+		<sfExport object="Restricted_Policy_Number__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from Restricted_Policy_Number__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="Restricted_Policy_Number__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="Restricted_Policy_Number__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		proxyusername="${proxy.user.name}" proxypasswordencrypted="${proxy.user.passwordencrypted}" externalIdField="null" />		
+-->		
+<!--TBR		<sfExport object="Routing_Configuration__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from Routing_Configuration__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="Routing_Configuration__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="Routing_Configuration__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		 externalIdField="null" />		
+
+		<sfExport object="Swivel_Topic__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from Swivel_Topic__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="Swivel_Topic__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="Swivel_Topic__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />		
+		
+		<sfExport object="TTS_Access__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from TTS_Access__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="TTS_Access__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="TTS_Access__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		 externalIdField="null" />	
+
+		
+		<sfExport object="ACETLanguage__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETLanguage__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETLanguage__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETLanguage__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		 externalIdField="null" />	
+
+		
+		<sfExport object="Alert__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from Alert__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="Alert__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="Alert__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		 externalIdField="null" />TBR -->			 
+	
+	 </target>
+	 
+	 <target name="exportTestDataOneTime" description="Export Salesforce objects">
+		<!--	
+		<sfExport object="ACETOrgInstanceURLToOrgNameMap__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETOrgInstanceURLToOrgNameMap__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETOrgInstanceURLToOrgNameMap__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETOrgInstanceURLToOrgNameMap__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		 externalIdField="null" />
+		 
+		<sfExport object="ACETWrapEncryptionKey__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ACETWrapEncryptionKey__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ACETWrapEncryptionKey__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ACETWrapEncryptionKey__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />		
+
+		<sfExport object="ISL_Webservice_Config__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="select id from ISL_Webservice_Config__c" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/> 
+
+		<sfDeleteAll object="ISL_Webservice_Config__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"/>	
+		
+		<sfInsert object="ISL_Webservice_Config__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		externalIdField="null" />		
+		 -->
+	 </target>
+</project>

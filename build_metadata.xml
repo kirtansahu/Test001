@@ -1,0 +1,982 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- ################################################################################################### 
+ @author   Persistent Systems 
+ @date     3-28-2017
+ @description  - This file contain all the tasks/targets needed for the supported salesforce metadata 
+				 migration to the target org. It has the logic to get the salesforce session id of the
+				 target org, response parsing, builddetails object record creation, runquery, incremental
+				 deployment, full deployment etc.
+				 
+				 Any metadata related changes needed need to be carried out in this file.
+				  
+#########################################################################################################
+-->
+
+<project name="Tasks for metadata migration" basedir="." xmlns:sf="antlib:com.salesforce">
+    
+   <!-- <property file="../build.properties"/> -->
+   <!-- <property file="default.properties"/> -->
+   <!-- <property  file="${property.file.path}"/> -->
+   <!-- <property  file="CISupport/Sandbox/Sandbox_default.properties"/> -->
+	<property environment="env"/>
+    
+  
+    <!-- Define salesforce migration tool task  -->
+    <taskdef resource="com/salesforce/antlib.xml" uri="antlib:com.salesforce">
+        <classpath>
+            <pathelement location="CISupport/lib/ant-salesforce.jar" />
+        </classpath>
+    </taskdef>
+
+	<taskdef resource="net/sf/antcontrib/antlib.xml" 
+              classpath="CISupport/lib/ant-contrib-1.0b3.jar"/>
+    
+    <!-- Define ant contib task to have complex logic like if else and for loop etc. -->
+    <taskdef resource="net/sf/antcontrib/antlib.xml" 
+              classpath="${ant.contrib.jar}" />
+	
+    <path id="Encodebase64.path">
+        <pathelement location="${ant.java.commons-codec.jar}"/>
+        <pathelement location="${ant.git.salesforce.incremental.jar}"/>
+    </path>
+    <!-- Define ant http task to make http get and post to salesforce for data -->  
+	<taskdef name="http" 
+             classname="org.missinglink.ant.task.http.HttpClientTask" classpath="${ant.http.jar}"/> 
+    
+    
+    <!-- Define xmltask to parse xml and add node to xml etc. -->
+    <taskdef name="xmltask" 
+             classname="com.oopsconsultancy.xmltask.ant.XmlTask" classpath="${ant.xmltask.jar}"/>
+    
+    <!-- Process the Git log -->
+	<!--<taskdef name="processGitLog" 
+             classname="FileProcessor" classpath="${ant.git.salesforce.log.file.processor.jar}"/>
+	-->		 
+	
+	<!-- Define custom prepartepackagexml task to create package xml from git change log-->
+    <taskdef name="preparepackagexml" 
+             classname="CreatePackgeXML" classpath="${ant.git.salesforce.incremental.jar}"/>
+    
+    
+  
+  
+    <!-- Define custom copyfiles task to prepare deployment folder from git using package xml-->
+    <taskdef name="copyfiles" 
+             classname="CopyFilesUsingPackageXML" classpath="${ant.git.salesforce.incremental.jar}"/>
+    
+    <!-- Define custom EncodeBase64 task to convert zip back up to base64 so that it can be post to SF -->
+    <taskdef name="EncodeBased64" classpathref="Encodebase64.path"
+             classname="EncodeBased64Binary"  />
+
+    <!-- Define custom mergePackageXml task to merge OneOff-package-xml with package-xml-->
+    <taskdef name="mergePackageXml" 
+             classname="MergePackageXML" classpath="${ant.git.salesforce.incremental.jar}"/>
+	
+	
+	<!-- Define custom cleanpermission task for cleaning profiles/permissionsets not included in the src -->
+	    <taskdef name="cleanPermissions" 
+	             classname="PreparePermissions" classpath="${ant.git.salesforce.incremental.jar}"/>
+				 
+		<taskdef name="processGitLogFile" 
+	             classname="LogFileProcessor" classpath="${ant.gitlog.processor.jar}"/>
+			 
+			 
+    <!-- Login into Salesforce and return the session Id and serverUrl using http task-->
+    <macrodef name="login">
+        <attribute name="username" description="Salesforce user name."/>
+        <attribute name="password" description="Salesforce password."/>
+        <attribute name="serverurl" description="Server Url property."/>
+        <attribute name="sessionId" description="Session Id property."/>
+        <attribute name="loginUrl" description="Session Id property."/>
+        
+        <sequential>
+            
+            <!-- Obtain Session Id via Login SOAP service -->
+            <http url="@{loginUrl}" method="POST" failonunexpected="false"
+                entityProperty="loginResponse" statusProperty="loginResponseStatus" 
+                printrequestheaders="false" printresponseheaders="false" printrequest="false">
+                <headers>
+                    <header name="Content-Type" value="text/xml"/>
+                    <header name="SOAPAction" value="login"/>
+                </headers>
+                <entity>
+                    <![CDATA[
+                    <env:Envelope xmlns:xsd='http://www.w3.org/2001/XMLSchema' 
+                        xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' 
+                        xmlns:env='http://schemas.xmlsoap.org/soap/envelope/'>
+                        <env:Body>
+                            <sf:login xmlns:sf='urn:enterprise.soap.sforce.com'>
+                                <sf:username>@{username}</sf:username>
+                                <sf:password>@{password}</sf:password>
+                            </sf:login>
+                        </env:Body>
+                    </env:Envelope>
+                    ]]>
+                </entity>
+            </http>
+			            
+            <!-- Parse response -->
+            
+            <xmltask destbuffer="loginResponseBuffer">
+                <insert path="/">${loginResponse}</insert>
+            </xmltask>
+            <if>
+                <!-- Success? -->
+                <equals arg1="${loginResponseStatus}" arg2="200"/>
+                <then>
+                    <!-- Parse sessionId and serverUrl -->
+                    <xmltask sourcebuffer="loginResponseBuffer" failWithoutMatch="true">
+                        <copy path="/*[local-name()='Envelope']/*[local-name()='Body']/:loginResponse/:result/:sessionId/text()"
+                          property="@{sessionId}"/>
+                        <copy path="/*[local-name()='Envelope']/*[local-name()='Body']/:loginResponse/:result/:serverUrl/text()"
+                          property="@{serverUrl}"/>
+                    </xmltask>
+					<echo>sessionId : ${sessionId}</echo>
+					<echo>serverUrl : ${serverUrl}</echo>
+                </then>
+                <else>
+                    <!-- Parse login error message and fail build -->
+                    <xmltask sourcebuffer="loginResponseBuffer" failWithoutMatch="true">
+                        <copy 
+                          path="/*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='Fault']/*[local-name()='faultstring']/text()" 
+                          property="faultString"/>
+                    </xmltask>
+                    <fail message="${faultString}" />
+                </else>
+            </if>
+        </sequential>
+    </macrodef>
+        
+    <!-- this macrodef will create a build record in salesforce with updated revision id -->   
+      <macrodef name="createBuildRecord" description="Builddetails object record creation">
+       
+        <attribute name="sessionId" description="Salesforce sessionId."/>
+        <attribute name="startrev" description="Git startrevision number"/>
+        <attribute name="endrev" description="Git endrevision number"/>
+        <attribute name="buildrecordId" description="Builddetails recordId"/>  
+        <attribute name="gitlogcomment" default="Full Deployment"/>
+		<attribute name="BuildType" default="Build Type"/>
+		
+		<attribute name="backupfilepath" description="Backup.zip file path location"/>
+		
+        <sequential>
+			<echo>***************** Create Build started *******************</echo>
+			<exec executable="sfdx" resultproperty="SFDX.recordResponseStatus" outputproperty="SFDX.createrecord.output" failonerror="true">
+<!-- 				<arg line='/c '/> -->
+				<arg line=' force:data:record:create -s BuildDetails__c -u ${sfsb.username} '/>
+				<arg line=' -v '/>
+				<arg line=' "RevisionStart__c=@{startrev} RevisionEnd__c=@{endrev}  Description__c=NA " '/>
+				<!-- <arg line=" Description__c='NA' "/> -->
+				<arg line=' --json'/>
+		   </exec>
+
+            <if>
+                <!-- Success? -->
+                <equals arg1="${SFDX.recordResponseStatus}" arg2="0"/>
+                <then>
+                    <!-- Parse JSON response and set properites -->
+					<script language="javascript">
+								<!-- var response = eval('('+project.getProperty('buildDetails')+')'); -->
+								var echo = project.createTask("echo");
+								var response = project.getProperty('SFDX.createrecord.output');
+								var jsonformatted = JSON.parse(response);
+								var result = jsonformatted.result;
+							echo.setMessage("Build Record Id is  " +  result.id);
+							echo.perform( );
+								
+								if(result){
+									project.setProperty('start.revision', result.id);
+									project.setProperty('@{buildrecordId}' ,  result.id);
+								}else{
+								}
+							</script>
+                   
+                    <echo>${line.separator} *** Build Record is Created *** </echo>     
+		
+					 <if>
+                        <available file="@{backupfilepath}"/>
+                        <then>
+                            <EncodeBased64 srcPatch="@{backupfilepath}" retproperty="base64EncodedValue"/> 
+                    
+                            <createAttachment body="${base64EncodedValue}" sessionId="${sessionId}" 
+                                          recordId="${buildrecordId}" />
+                            <echo>${line.separator} *** Zip file attached to  build record *** </echo>
+                        </then>
+                        <else>
+                            <echo>${line.separator} *** No Zip file found for attachment  *** </echo>
+                        </else>
+                    </if>
+		
+					
+                </then>
+                <else>
+					<echo>!!!!!!!!!!!!!!!!!!!!!!!!status : ${recordResponseStatus} </echo>
+                    <!-- Parse login error message and fail build -->
+                    <echo message="${line.separator} *** WARNING -Build record creation in SF failed.${line.separator} *** " level="warning"/>
+                    <echo message="${line.separator}*** WARNING Response:  ${recordCreateResponse}***** ${line.separator} *** " 
+                          level="warning" />
+                    <echo message="${line.separator}*** WARNING Please manullay create build record with svn version in SF *** ${line.separator} " 
+                          level="warning" />
+                </else>
+            </if>
+		</sequential>
+	</macrodef>
+        
+	<!-- SFDX Authorization  -->
+	<macrodef name="runJWTAuth" description="Authorizes a Salesforce org using the JWT flow">
+		<sequential>
+			<!-- JWTAuth.bat for windows and  JWTAuth.sh Linux 	-->
+<!-- 			<exec executable=".JWTAuth.bat" resultproperty="SFDX.auth.Result" failonerror="true"/>  -->
+			<echo>OS Name is ${os.name}</echo>
+			<if>
+				<contains string="${os.name}" subString="Linux"/>
+				<then>
+					<property name="executableType" value="/bin/sh"/>
+					<property name="jwtKeyFileType1" value="${jwtKeyFile_Linux}"/>
+				</then>
+				<else>
+					<property name="executableType" value="cmd"/>
+					<property name="jwtKeyFileType1" value="${jwtKeyFile_Win}"/>
+				</else>
+			</if>
+
+ 			<echo>jwtKeyFileType : ${jwtKeyFileType1} </echo>
+<!-- 			<exec executable="pwd" resultproperty="SFDX.pwd.Result" outputproperty="SFDX.pwd.ResultResponse" failonerror="true"/> 
+			<exec executable="${SFDX.pwd.ResultResponse}/JWTAuth.sh" resultproperty="SFDX.auth.Result" failonerror="true"/> -->
+			
+			<exec executable="sfdx" resultproperty="SFDX.auth.Result" failonerror="true">
+			 	<arg line=" force:auth:jwt:grant"/>
+				<arg line=" -u ${sfsb.username}"/>
+				<arg line=" -f Certificate/server.key"/>
+				<arg line=" -i ${clientId}"/>
+				<arg line="  --json"/>
+				<arg line="  --loglevel error"/>
+				<arg line=" -r ${sfsb.serverurl}"/> 
+			</exec> 
+			  
+			 	
+			<echo>Auth Result : ${SFDX.auth.Result}</echo>
+			<if>
+				<equals arg1="${SFDX.auth.Result}" arg2="0"/>
+				<then>
+					<echo>Authorization :Success</echo>
+				</then>
+				<else>
+					<echo>Authorization :Fail</echo>
+				</else>
+			</if>	
+		</sequential>
+    </macrodef>
+
+	  <!-- this macrodef will attach zip file to build record id -->    
+    <macrodef name="createAttachment">
+
+		<attribute name="body" description="Property to store the base 64 encoded data."/>
+        <attribute name="sessionId" description="Property to store the base 64 encoded data."/>
+        <attribute name="recordId" description="Property to store the base 64 encoded data." />
+		<sequential>
+		
+			<exec executable="sfdx" resultproperty="SFDX.createAttachment.Result" outputproperty="SFDX.createAttachment.output" failonerror="true">
+<!-- 				<arg line="/c " />  -->
+				<arg line=" force:data:record:create -s Attachment -u ${sfsb.username}"/>
+				<arg line=" -v "/>
+				<arg line=' "ParentId=@{recordId} Name=BackUp.zip Body=@{body}" --json '/>
+		   </exec>
+
+		   <echo>Create  Attachment Result : ${SFDX.createAttachment.output}</echo>
+
+		</sequential>		
+	</macrodef>  
+	
+	<target name="SFDX_Auth_Deploy"> 
+		<echo message="Authorize an Org from target"/>
+		<runJWTAuth/>
+
+        <git-setup-macro/>
+
+		<preparedeployment 
+			diffLogFolder="deploy-sf/${git.ant.difflog.fld.name}"
+			sfusername = "${sfsb.username}"
+			sfpassword = "${sfsb.password}"
+			sfloginUrl = "${sf.login.url}"
+			deploymentFolderPath="deploy-sf/${git.sf.deployment.fld.name}"
+			isFull="false"/>
+
+		<if>
+			<and>
+				<equals arg1="${Build_Type}" arg2="Deploy"/>
+				<equals arg1="${SFDX.auth.Result}" arg2="0"/>
+			</and>
+			<then>
+				<echo message="Deploy to Org from target"/>
+				<property name="is.deployed" value="true"/>
+				<runSFDXDeploy/>
+				<if>
+					<equals arg1="${SFDX.deploy.Result}" arg2="0"/>
+					<then>
+						<echo message="Creating the zip from deploy-sf directory"/>
+
+						<zip destfile="${sf.backup.fld.name}" basedir="deploy-sf"/>
+						
+						<createBuildRecord
+							sessionId = "${sessionId}"
+							startrev = "${start.revision}"
+                                			endrev = "${end.revision}"
+							buildrecordId = "buildrecordId"
+							backupfilepath = "${sf.backup.fld.name}"
+							gitlogcomment = ""/>
+					</then>
+				</if>
+			</then>
+		</if>
+	</target>
+
+    <target name="SFDX_Auth_Vaildate_Only"> 
+		<echo message="ONLY Vaildate - Authorize an Org from target"/>
+	    <echo message="executeTestClasses value ${github.event.inputs.executeTestClasses} "/>
+             <echo message="testclasses name ${github.event.inputs.testclasses} "/>
+
+		<runJWTAuth/>
+
+        <git-setup-macro/>
+            
+            <preparedeployment 
+                diffLogFolder="deploy-sf/${git.ant.difflog.fld.name}"
+                sfusername = "${sfsb.username}"
+                sfpassword = "${sfsb.password}"
+                sfloginUrl = "${sf.login.url}"
+                deploymentFolderPath="deploy-sf/${git.sf.deployment.fld.name}"
+				isFull="false"/>
+        <if>
+			<and>
+				<equals arg1="${Build_Type}" arg2="Validate Only"/>
+				<equals arg1="${SFDX.auth.Result}" arg2="0"/>
+			</and>
+			<then>
+				<echo message="Vaildate to Org from target"/>
+				<property name="is.deployed" value="true"/>
+				<runSFDXValidateOnly/>
+				<if>
+					<equals arg1="${SFDX.deploy.Result}" arg2="0"/>
+					<then>
+						<echo message="Creating the zip from deploy-sf directory"/>
+
+						<zip destfile="${sf.backup.fld.name}" basedir="deploy-sf"/>
+					</then>
+				</if> 
+			</then>
+		</if>
+	</target>
+
+	<target name="SFDX_Auth_Rollback"> 
+
+		<echo message="Rollback Stage -1 : Authorize an Org from target"/>
+
+		<echo message="Authorize an Org from target"/>
+		<runJWTAuth/>
+
+        <git-setup-macro/>
+
+		<echo message="Rollback Stage -2 : Git Setup Done. PreDeployment Steps started"/>
+
+		<preparedeployment 
+			diffLogFolder="deploy-sf/${git.ant.difflog.fld.name}"
+			sfusername = "${sfsb.username}"
+			sfpassword = "${sfsb.password}"
+			sfloginUrl = "${sf.login.url}"
+			deploymentFolderPath="deploy-sf/${git.sf.deployment.fld.name}"
+			isFull="false"/>
+
+		<echo message="Rollback Stage -2 : Git Setup Done. PreDeployment Steps Ended"/>
+		
+		<if>
+			<and>
+				<equals arg1="${Build_Type}" arg2="Rollback"/>
+				<equals arg1="${SFDX.auth.Result}" arg2="0"/>
+			</and>
+			<then>
+				<echo message="Deploy to Org from target"/>
+				<property name="is.deployed" value="true"/>
+				<echo message="Rollback chnages deploy is commented"/>
+				<runSFDXDeploy/>
+				<if>
+					<equals arg1="${SFDX.deploy.Result}" arg2="0"/>
+					<then>
+						<echo message="Creating the zip from deploy-sf directory"/>
+
+						<zip destfile="${sf.backup.fld.name}" basedir="deploy-sf"/>
+						
+						<login username="${sfsb.username}" password="${sfsb.password}" serverurl="serverUrl" sessionId="sessionId"
+								loginUrl="${sf.login.url}"/>
+							<if>
+								<equals arg1="${loginResponseStatus}" arg2="200"/>
+								<then>
+									<createBuildRecord
+											sessionId = "${sessionId}"
+ 											startrev = "${start.revision}"
+                                			endrev = "${end.revision}"
+											buildrecordId = "buildrecordId"
+											backupfilepath = "${sf.backup.fld.name}"
+											gitlogcomment = ""/>
+								</then>
+							</if>
+					</then>
+				</if>
+			</then>
+		</if>
+	</target>
+
+	<!-- SFDX Deployment -->
+	<macrodef name="runSFDXDeploy" description="Deploys metadata in source format to an Salesforce org">		
+		<sequential>
+			<!-- <exec executable="SFDXDeploy.bat" resultproperty="SFDX.deploy.Result" failonerror="true"/> -->
+			
+			<RunApexTestClasses runapextest="${Run_ApexTest}" runspecifiedtest="${Run_SpecifiedTest}" property="testclass"/>
+			
+			<exec executable="sfdx" resultproperty="SFDX.deploy.Result" failonerror="true">
+<!-- 				<arg line="/c sfdx"/> -->
+			 	<arg line=" force:source:deploy"/>
+				 <arg line="-p deploy-sf"/>
+				 <arg line="-u ${sfsb.username}"/>
+				 <arg line="--verbose"/>
+				<arg line=" ${testclass}"/>
+				<arg line=" -w 120 "/> 
+			</exec> 
+			<echo>Deploy Result : ${SFDX.deploy.Result}</echo>
+			<if>
+				<equals arg1="${SFDX.deploy.Result}" arg2="0"/>
+				<then>
+					<echo>Deployment :Success</echo>
+				</then>
+				<else>
+					<echo>Deployment :Fail</echo>
+				</else>
+			</if>
+		</sequential>
+    </macrodef>
+
+    	<!-- SFDX Deployment Vaildation -->
+	<macrodef name="runSFDXValidateOnly" description="Vaildates metadata in source format to an Salesforce org">		
+		 <sequential>
+			<!-- <exec executable="SFDXValidateOnly.bat" resultproperty="SFDX.deploy.Result" failonerror="true">
+			</exec>-->
+			<RunApexTestClasses runapextest="${Run_ApexTest}" runspecifiedtest="${Run_SpecifiedTest}" property="testclass"/>
+			<exec executable="sfdx" resultproperty="SFDX.deploy.Result" failonerror="true">
+<!-- 				<arg line="/c sfdx"/> -->
+			 	<arg line="  force:source:deploy"/>
+				 <arg line=" -p deploy-sf"/>
+				 <arg line=" -u ${sfsb.username}"/>
+				 <arg line=" --verbose"/>
+				 <arg line=" --checkonly"/>
+				<arg line=" ${testclass}"/>
+				<arg line=" -w 120 "/> 
+			</exec>
+			<echo>Deploy Result : ${SFDX.deploy.Result}</echo>
+			<if>
+				<equals arg1="${SFDX.deploy.Result}" arg2="0"/>
+				<then>
+					<echo>Deployment - Vaildation :Success</echo>
+				</then>
+				<else>
+					<echo>Deployment - Vaildation :Fail</echo>
+				</else>
+			</if>
+		</sequential> 
+    </macrodef>
+	    <!-- Provides access -->
+
+    <macrodef name="git-setup-macro">		
+        <sequential>		
+            <if>
+            <equals arg1="${GitEndVersion}" arg2="HEAD" />
+                <then>
+                    <git command="pull">														
+                    </git> 
+                </then>
+                <else>
+                    <git command="pull">														
+                    </git> 
+                    <git command="checkout">
+                        <args>
+                            <arg line="${GitEndVersion}"/>
+                        </args>
+                    </git>
+                </else>
+            </if>
+        </sequential>
+    </macrodef>
+
+      <macrodef name="git">
+        <attribute name="command" />
+        <attribute name="outputproperty" default="dummy" />
+        <element name="args" optional="true" />
+        <sequential>
+            <echo message="git @{command}" />
+            <exec executable="git"   outputproperty="@{outputproperty}">
+                <arg value="@{command}" />
+                <args/>
+            </exec>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="preparedeployment">
+        <attribute name="diffLogFolder"  description="Git Diff log folder"/>
+        <attribute name="deploymentFolderPath" description="Deployment folder path"/>
+        <attribute name="sfusername" description="Salesforce user name."/>
+        <attribute name="sfpassword" description="Salesforce password."/>
+        <attribute name="sfloginUrl" description="Salesforce login URL"/>
+        <attribute name="isFull"  default="false" description="Full or Incremental deployment. Default is Incremental."/> 
+        <attribute name="gitlogcomment" default="Full Deployment"/>
+
+        <sequential>
+        	<echo>${line.separator} ***Before Git rev-parse*** ${end.revision}</echo>
+            <!-- check the current git revision revision/version -->
+            <git command="rev-parse" outputproperty="end.revision" >
+                <args>
+                    <arg value="HEAD" />
+                </args>
+            </git>
+			<echo>${line.separator} *** After Git rev-parse *** ${end.revision}</echo>
+			 <!-- check for roll back -->
+
+			<condition property="is-rollback"> 
+				<equals arg1="${Build_Type}" arg2="${git.buildtype.rollback}"/>
+			</condition>		
+
+			<condition property="is-validate"> 
+				<equals arg1="${Build_Type}" arg2="${git.buildtype.validateonly}"/>
+			</condition>
+			 
+            <echo>${line.separator} *** Current commit id : ${end.revision} *** </echo>
+            
+<!--             <echo>${line.separator} *** Connecting to Salesforce *** </echo> -->
+            <!-- login to salesforce  -->
+<!--             <login username="@{sfusername}" password="@{sfpassword}" serverurl="serverUrl" sessionId="sessionId"
+                   loginUrl="@{sfloginUrl}"/> -->
+            
+<!--             <echo>${line.separator} *** Conected to Salesforce *** </echo> -->
+             <echo>${line.separator} *** Conected to Salesforce roll back = ${is-rollback} *** </echo>
+
+              <!-- SOQL to salesforce to get latest revision deployed to salesforce -->
+			<if>
+                <equals arg1="@{isFull}" arg2="false"/>
+                <then>
+				     <if>
+						<equals arg1="${git.buildtype.rollback}" arg2="${Build_Type}" />
+						<then>
+						<!-- it is rollback -->
+							<echo>${line.separator} ***  inside  a roll back - 1 = ${is-rollback} *** </echo>      
+							<trycatch>
+								<try>
+									<runQuery
+										sessionId="${sessionId}"
+										serverUrl="${serverUrl}"
+										queryResult="buildDetails"
+										query="SELECT Id, RevisionStart__c,RevisionEnd__c FROM BuildDetails__c  order by CreatedDate DESC LIMIT 1"/>
+								</try>
+								<catch>
+									<echo>${line.separator} *** Error querying Build_Details object ***</echo>
+								</catch>
+							</trycatch>
+								<!-- Parse JSON result via JavaScript eval -->
+								<script language="javascript">
+									<![CDATA[ 
+										var response = eval('('+project.getProperty('buildDetails')+')');
+										if(response.records[0]){
+											project.setProperty('end.revision',project.getProperty('GitEndVersion'));
+											project.setProperty('start.revision', response.records[0].RevisionEnd__c);
+										}
+									]]>
+								</script>
+								<echo>${line.separator} ***  inside  a roll back - 2 = ${is-rollback} Query Run completed *** </echo>      
+						</then>
+						<else>
+							<echo>${line.separator} *** Incremental deployment started... ***</echo>	
+							<echo>${line.separator} *** Getting the last commit id deployed to SF ***</echo>
+							<trycatch>
+								<try>
+									<echo> Debug Message : sessionId: ${sessionId} Server ULL: ${serverUrl} </echo>
+									<runQuery
+										sessionId="${sessionId}"
+										serverUrl="${serverUrl}"
+										queryResult="buildDetails"
+										query="SELECT Id, RevisionStart__c,RevisionEnd__c FROM BuildDetails__c  order by CreatedDate DESC LIMIT 1"/>
+								</try>
+								<catch>
+									<echo>${line.separator} *** Error querying Build_Details object ***</echo>
+									<echo>${line.separator} *** Error querying Build_Details object ***</echo>
+								</catch>
+							</trycatch>
+							<!-- Parse JSON result via JavaScript eval -->
+							
+							<script language="javascript">
+								<!-- var response = eval('('+project.getProperty('buildDetails')+')'); -->
+								var echo = project.createTask("echo");
+								var response = project.getProperty('buildDetails');
+								var jsonformatted = JSON.parse(response);
+								var result = jsonformatted.result;
+							echo.setMessage("setting result in output to variable " + result.records[0].RevisionEnd__c);
+							echo.perform( );
+								
+								if(result.records[0]){
+									project.setProperty('start.revision', result.records[0].RevisionEnd__c);
+								}else{
+									project.setProperty('is.lastcommit.id.not.found', true);
+								}
+							</script>
+						</else>
+					</if>
+				</then>
+				<else>
+					<echo>${line.separator} *** Full deployment started... *** </echo>										
+				</else>
+			</if>
+
+             <!-- check if the start revision set then take second last commit id -->
+              <mkdir dir="@{diffLogFolder}"/>
+            <if>
+                <or>
+                    <equals arg1="${is.lastcommit.id.not.found}" arg2="true"/>
+                    <equals arg1="@{isFull}" arg2="true"/>
+                </or>
+                <then>
+                 <!-- Need to add commend to copy full source code-->                    
+                    <script language="javascript">
+                            <![CDATA[ 
+                                project.setProperty('gitlogcomment','Full Deployment');
+                            ]]>
+                </script>					  
+                <!-- need to be updated after the call-->
+                <!-- set is deployed property so that build record will be created -->
+                <if>
+                    <equals arg1="${Build_Type}" arg2="Deploy"/>
+                    <then>
+                        <property name="is.deployed" value="true"/>
+                    </then>
+                </if>
+                </then>
+                <else>
+                    <echo> ${line.separator} *** Last revision found in Salesforce : ${start.revision} *** </echo>
+                    <echo> ${line.separator} *** Check for ${start.revision} and ${end.revision} ***</echo>
+                    					
+					<!-- getting diff log from git beween two version using git commandline "-->
+                    <echo> ${line.separator} *** Getting the git change log between ${start.revision} and ${end.revision} ***</echo>
+					
+                    <if>
+						<not>
+						<equals arg1="${git.buildtype.rollback}" arg2="${Build_Type}" />
+						</not>
+						<then>
+								<script language="javascript">
+												<![CDATA[ 
+													
+														if(!(project.getProperty('GitStartVersion') === '')){
+															project.setProperty('start.revision',project.getProperty('GitStartVersion'));
+														}
+														if(!(project.getProperty('GitEndVersion') === '' || project.getProperty('GitEndVersion') === 'HEAD')){
+															project.setProperty('end.revision',project.getProperty('GitEndVersion'));
+														}
+														]]>
+								</script>
+						</then>
+					</if>
+
+					<if>
+						<equals arg1="${Build_Type}" arg2="${git.buildtype.rollback}" />
+						<then>
+							<echo>Identifying the Code changes for rollback</echo>
+							<script language="javascript">
+								   <![CDATA[ 
+										project.setProperty('gitlogcomment','Rollback');
+									]]>
+							</script>
+							<git command="checkout">
+							  <args>
+								 <arg line="-f"/>
+                                <arg line="${end.revision}"/>
+                                <arg line="${git.src}"/>
+							</args>
+							</git>
+							<echo>Code changes for rollback Identified</echo>
+						</then>
+					</if>
+
+                    <echo> ${line.separator} *** Before the git diff command execution ${start.revision} and ${end.revision}***</echo>
+            
+                    <exec executable="git"  output="@{diffLogFolder}/${git.difflog.name}" outputproperty="gitDiffLog">
+                        <arg line="diff"/>
+						<arg line="--name-only"/>
+                        <arg line="${start.revision}"/>
+                        <arg line="${end.revision}"/>
+                        <arg line="--"/>
+                        <arg line="${git.src}"/>
+                    </exec>
+					<echo>Git Dif Log is : ${gitDiffLog}</echo>
+
+					<trycatch>
+						<try>
+							<exec executable="git"  output="@{diffLogFolder}/${git.log.comment}" >
+								<arg line="log"/>
+								<arg line="${start.revision}..${end.revision}"/>                       
+								<arg line="--pretty=oneline"/>
+							</exec>
+							
+							<loadfile property="commitmessage" srcFile="@{diffLogFolder}/${git.log.comment}"  failonerror="false"/>
+						  
+							<script language="javascript">
+								<![CDATA[ 									
+									var comments = project.getProperty('commitmessage');
+									if(comments){
+										if(comments.length >=131072){ 
+											comments = comments.substring(0, 131071);
+										 }
+											project.setProperty('gitlogcomment',comments.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '\\"').replace(/(?:\r\n|\r|\n)/g, '\\n '));
+									}
+								]]>
+							</script>
+						</try>
+						<catch>
+							
+						</catch>
+					</trycatch>
+
+
+                    <echo>${line.separator} *** Difference change log created *** </echo>
+
+                    <echo>${line.separator} *** Processing git log *** </echo>
+            	
+                    <!--<processGitLogFile gitLogFileUrl="@{diffLogFolder}/${git.difflog.name}" gitIgnoreFileUrl="CISupport/Sandbox/${git.ignore.file}"/> -->
+							
+					<ProcessFiles file-Lists="${gitDiffLog}" />
+					
+					<delete>
+						<fileset dir="deploy-sf/gitchangelog">
+						</fileset>
+					</delete>
+                </else>
+            </if>
+        </sequential>
+
+    </macrodef>
+
+<macrodef name="ProcessFiles" description="Move the new / modified files into SF-deploy folder">
+    <attribute name="file-Lists" description="File List collection"/>
+        <sequential>
+            <for list="@{file-Lists}" param="currentFile" delimiter="${line.separator}">
+                <sequential>
+                    <if>
+                        <contains string="@{currentFile}" subString="force-app"/>
+                        <then>
+                            <!-- Get the file / component parent folder path -->
+                            <propertyregex property="currentComponentFolder" input="@{currentFile}"
+                                regexp="(.*\/).*" select="\1" casesensitive="true" 
+                                override="true" defaultValue=""/>
+
+                                <!-- Find the aura keywoerd  component folder path -->
+                                <propertyregex property="currentComponentlwc" input="${currentComponentFolder}"
+                                regexp="force-app\/main\/default\/lwc\/" select="\0"
+                                casesensitive="true" override="true" defaultValue=""/>
+
+                                <!-- Find the aura keywoerd  component folder path -->
+                                <propertyregex property="currentComponentaura" input="${currentComponentFolder}"
+                                regexp="force-app\/main\/default\/aura\/" select="\0"
+                                casesensitive="true" override="true" defaultValue=""/>
+
+                            <echo>File to Copy  @{currentFile}</echo>
+                            <echo>Component Folder to Copy  ${currentComponentFolder}</echo>
+
+                        
+                                <propertyregex
+                                            property="deploySubFolder"
+                                            input="@{currentComponentFolder}"
+                                            regexp="force-app\/main\/default\/([a-zA-Z$]*\/[a-zA-Z0-9\/\ \_-]*).*"
+                                            select='\1'
+                                            casesensitive="true" 
+                                            override="true"
+                                            defaultValue=""/>
+                                    <echo> deploySubFolder path: ${deploySubFolder} </echo>
+
+                            <echo>value of  {currentComponentaura} =  ${currentComponentaura}</echo>
+                            <echo>value of  {currentComponentlwc} =  ${currentComponentlwc}</echo>
+
+                            <!--- Check current component is LWC or AURA -->
+                            <if>
+                                <or>
+                                    <contains string="${currentComponentaura}" subString="aura"/>
+                                    <contains string="${currentComponentlwc}" subString="lwc"/>
+                                </or>
+                                <then>
+                                    <if>
+                                        <contains string="${currentComponentaura}" subString="aura"/>
+                                        <then>
+                                        <propertyregex property="auraFolderPath" input="${currentComponentFolder}"
+                                            regexp="force-app\/main\/default\/aura\/" replace=""
+                                    casesensitive="true" override="true" defaultValue=""/>
+                                                <echo>Aura component folder name -1 is @{auraFolderPath}</echo>
+                                                <echo>Aura component folder name -2 is ${auraFolderPath}</echo>
+
+                                                <if>
+                                                    <available file="deploy-sf/aura/${auraFolderPath}" type="dir" />
+                                                <then>
+                                                    <echo message="Directory exists" />
+                                                </then>
+                                                <else>
+                                                    <echo message="Directory does not exist" />
+                                                    <mkdir dir="deploy-sf/aura/${auraFolderPath}"/>
+                                                </else>
+                                                </if>
+                                            
+                                            <copy todir="deploy-sf/aura/${auraFolderPath}" verbose="true">
+                                                <fileset dir="${currentComponentFolder}">
+                                                    <include name="*.*"/>
+                                                </fileset>
+                                            </copy> 
+                                        </then>
+                                    </if>
+                                    <if>
+                                        <contains string="${currentComponentlwc}" subString="lwc"/>
+                                        <then>
+                                            <propertyregex property="lwcFolderPath" input="${currentComponentFolder}"
+                                            regexp="force-app\/main\/default\/lwc\/" replace=""
+                                    casesensitive="true" override="true" defaultValue=""/>
+                                                <echo>LWC component folder name -1 is @{lwcFolderPath}</echo>
+                                                <echo>LWC component folder name -2 is ${lwcFolderPath}</echo>
+
+                                                <if>
+                                                    <available file="deploy-sf/lwc/${lwcFolderPath}" type="dir" />
+                                                <then>
+                                                    <echo message="Directory exists" />
+                                                </then>
+                                                <else>
+                                                    <echo message="Directory does not exist" />
+                                                    <mkdir dir="deploy-sf/lwc/${lwcFolderPath}"/>
+                                                </else>
+                                                </if>
+                                            
+                                            <copy todir="deploy-sf/lwc/${lwcFolderPath}" verbose="true">
+                                                <fileset dir="${currentComponentFolder}">
+                                                    <include name="*.*"/>
+                                                </fileset>
+                                            </copy> 
+                                        </then>
+                                    </if>
+                                    
+                                </then>
+                                <else>
+                                    <echo>NON LWC / AURA component path to Copy  ${currentComponentFolder}</echo>
+                                    <!--<basename property="filename" file="@{currentFile}"/> -->
+
+                                    <propertyregex property="otherFolderPath" input="${currentComponentFolder}"
+                                            regexp="force-app\/main\/default\/" replace=""
+                                    casesensitive="true" override="true" defaultValue=""/>
+
+                                    <echo>Other component's folder name is: ${otherFolderPath}</echo>
+
+                                    <propertyregex property="mainfolderPath" input="@{currentFile}"
+                                            regexp="force-app\/main\/default\/" replace=""
+                                    casesensitive="true" override="true" defaultValue=""/>
+
+                                    <propertyregex property="filename" input="${mainfolderPath}"
+                                            regexp="${otherFolderPath}" replace=""
+                                    casesensitive="true" override="true" defaultValue=""/>
+
+                                    <echo>FileName-2 is ${filename}</echo>
+
+                                        <if>
+                                            <available file="deploy-sf/${otherFolderPath}" type="dir" />
+                                            <then>
+                                                <echo message="Directory exists" />
+                                            </then>
+                                            <else>
+                                                <echo message="Directory does not exist" />
+                                                <mkdir dir="deploy-sf/${otherFolderPath}"/>
+                                            </else>
+                                        </if>
+
+                                        <copy todir="deploy-sf/${otherFolderPath}" verbose="true">
+                                            <fileset dir="${currentComponentFolder}">
+                                                <include name="${filename}"/>
+                                            </fileset>
+                                        </copy>
+
+                                        <copy todir="deploy-sf/${otherFolderPath}" verbose="true">
+                                            <fileset dir="${currentComponentFolder}">
+                                                <include name="${filename}-meta.xml"/>
+                                            </fileset>
+                                        </copy>
+                                </else>
+                            </if>   
+                        </then>
+                    </if>
+                </sequential>
+            </for>
+        </sequential>
+    </macrodef>
+
+	   <!-- Provides access to the Salesforce REST API for a SOQL query -->
+    
+ <macrodef name="runQuery" description="Run database query">
+		<attribute name="sessionId" description="Salesforce sessionId."/>
+		<attribute name="serverUrl" description="Salesforce url."/>
+		<attribute name="query" description="Salesforce soql query."/>
+		<attribute name="queryResult" description="Query result property name"/>
+		<sequential>
+         
+		<exec executable="sfdx" resultproperty="queryResponseStatus" outputproperty="queryResponse" failonerror="true">
+<!-- 			<arg line="/c"/> -->
+			<arg line=" force:data:soql:query -q '@{query}' -u ${sfsb.username}  --json"/>
+		</exec>
+
+		   <echo>queryResponseStatus is </echo>
+		   <echo>${queryResponseStatus}</echo>
+		   <echo>-----------------------------------</echo>
+		   <echo>${queryResponse}</echo>
+		   <echo>-----------------------------------</echo>
+
+			<if>
+				<equals arg1="${queryResponseStatus}" arg2="0"/>
+				<then>
+					<property name="@{queryResult}" value="${queryResponse}"/>
+				</then>
+				<else>
+					<echo>${line.separator} *** ${queryResultResponse} ***${line.separator}</echo>
+					<fail message="${queryResultResponse}" />
+				</else>
+			</if>
+        </sequential>
+    </macrodef>
+	
+     <scriptdef name="RunApexTestClasses" language="javascript" description="Run Apex test classes"> 
+		<attribute name="runapextest" />
+		<attribute name="runspecifiedtest" />
+		<attribute name="property" />
+				<![CDATA[
+
+				var echo = project.createTask("echo");
+
+				var runapextest = attributes.get("runapextest");
+				var runspecifiedtest=attributes.get("runspecifiedtest");
+				var result = '';
+				echo.setMessage("runapextest: " + runapextest );
+				echo.perform( );
+				echo.setMessage("runspecifiedtest " + runspecifiedtest );
+				echo.perform( );
+				
+			
+				if(runapextest=='Yes'){
+					if (runspecifiedtest.length()>0)
+					{
+						result = '-l RunSpecifiedTests -r "' + runspecifiedtest + '"';
+					}
+					else{
+						result = '-l RunLocalTests ';
+					}
+					project.setProperty(attributes.get("property"),result);
+				}
+				else{
+					project.setProperty(attributes.get("property"), result);
+				}
+			]]>
+	 </scriptdef>
+</project>

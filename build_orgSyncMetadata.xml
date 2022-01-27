@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- ################################################################################################### 
+ @author   Persistent Systems 
+ @date     3-28-2017
+ @description  - This file contain all the tasks/targets needed for the supported salesforce metadata 
+				 migration to the target org. It has the logic to get the salesforce session id of the
+				 target org, response parsing, builddetails object record creation, runquery, incremental
+				 deployment, full deployment etc.
+				 
+				 Any metadata related changes needed need to be carried out in this file.
+				  
+#########################################################################################################
+-->
+
+<project name="Tasks for metadata migration" basedir="." xmlns:sf="antlib:com.salesforce">
+    
+    <!-- <property file="../build.properties"/> -->
+   <!-- <property file="default.properties"/> -->
+    <!-- <property  file="${property.file.path}"/> -->
+	<property environment="env"/>
+    
+  
+    <!-- Define salesforce migration tool task  -->
+    <taskdef resource="com/salesforce/antlib.xml" uri="antlib:com.salesforce">
+        <classpath>
+            <pathelement location="CISupport/lib/ant-salesforce.jar" />
+        </classpath>
+    </taskdef>
+
+	<taskdef resource="net/sf/antcontrib/antlib.xml" 
+              classpath="CISupport/lib/ant-contrib-1.0b3.jar"/>
+    
+    <!-- Define ant contib task to have complex logic like if else and for loop etc. -->
+    <taskdef resource="net/sf/antcontrib/antlib.xml" 
+              classpath="${ant.contrib.jar}" />
+	
+    <path id="Encodebase64.path">
+        <pathelement location="${ant.java.commons-codec.jar}"/>
+        <pathelement location="${ant.git.salesforce.incremental.jar}"/>
+    </path>
+    <!-- Define ant http task to make http get and post to salesforce for data -->  
+	<taskdef name="http" 
+             classname="org.missinglink.ant.task.http.HttpClientTask" classpath="${ant.http.jar}"/> 
+    
+    
+    <!-- Define xmltask to parse xml and add node to xml etc. -->
+    <taskdef name="xmltask" 
+             classname="com.oopsconsultancy.xmltask.ant.XmlTask" classpath="${ant.xmltask.jar}"/>
+    
+    
+    <!-- Define custom EncodeBase64 task to convert zip back up to base64 so that it can be post to SF -->
+    <taskdef name="EncodeBased64" classpathref="Encodebase64.path"
+             classname="EncodeBased64Binary"  />
+
+    <!-- Define custom mergePackageXml task to merge OneOff-package-xml with package-xml-->
+    <taskdef name="mergePackageXml" 
+             classname="MergePackageXML" classpath="${ant.git.salesforce.incremental.jar}"/>
+	
+	
+	<!-- Define custom cleanpermission task for cleaning profiles/permissionsets not included in the src -->
+	    <taskdef name="cleanPermissions" 
+	             classname="PreparePermissions" classpath="${ant.git.salesforce.incremental.jar}"/>
+				 
+	<target name="ORG_SYNC">
+
+		<!-- 1. Connect to your Org -->
+		<connectToOrg/>
+
+		<exec executable="git ">
+			<arg line=" pull -v --progress ${env.GIT_BRANCH}"></arg>
+		</exec>
+
+		<!-- 2. Retrieve supported metadata types of Org -->
+		<!-- 3. Retrieve components for each component type -->
+		<getSupportedMetadata/>
+
+		<!-- 4. Push your changes to git repository -->
+		<checkInToGit/>
+
+	</target>		 
+   
+	<macrodef name="connectToOrg" description="Authorizes a Salesforce org using the JWT flow">
+		<sequential>
+			<echo message="1. Connect to your Org"/>
+			 <exec executable="JWTAuth.bat" resultproperty="SFDX.deploy.Result" outputproperty="SFDX.deploy.Result1" failonerror="true"> 
+			<!--	<exec executable="cmd" 
+					resultproperty="SFDX.deploy.Result" 
+					outputproperty="SFDX.deploy.Result1" 
+					failonerror="true">
+				<arg line="/c sfdx force:auth:jwt:grant -u ${sfsb.username} -f ${jwtKeyFile} -i ${clientId} -r ${sfsb.instanceurl} - -json - -loglevel TRACE "/> -->
+		   </exec>
+		   <echo>----------------------</echo>
+		   <echo>Auth Result : ${SFDX.deploy.Result1}</echo>
+		   <echo>----------------------</echo>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="getSupportedMetadata" description="Get the list of supported metadata">
+		
+		<sequential>
+			<echo>2. Retrieve metadata types of your Org</echo>
+			<!--sfdx force:source:retrieve -p force-app/main/default  -->
+			<exec executable="cmd" 
+			resultproperty="SFDX.deploy.Result3" 
+			outputproperty="SFDX.supportedMetadata" 
+			output="OrgMetadata.json"
+			failonerror="true">
+				<arg line="/c sfdx force:mdapi:describemetadata --json -u ${sfsb.username}"/>
+			</exec>
+			<echo>Available metadata are </echo>
+			<echo>${SFDX.supportedMetadata} </echo>
+			<var name="counter" value="0"/>
+			<var name="xmlNodeDir" value=""/>
+			<for list="${SFDX.supportedMetadata}" param="currentFile" delimiter="${line.separator}">
+				<sequential>
+					<math result="counter" operand1="${counter}" operation="+" operand2="1"
+						datatype="int"/>
+					<if>
+						<or>
+							<contains string="@{currentFile}" subString="directoryName"/>
+							<contains string="@{currentFile}" subString="xmlName"/>
+						</or>
+						<then>
+							<!-- <echo>counter: ${counter} and value @{currentFile}</echo> -->
+							<propertyregex property="directoryNamePath" input="@{currentFile}"
+								regexp="directoryName" replace=""
+								casesensitive="true" override="true" defaultValue="NA"/>
+							<if>
+								<contains string="${directoryNamePath}" subString="NA"/>
+								<then>
+									<echo>Empty Directory name</echo>
+								</then>
+								<else>
+									<var name="xmlNodeDir" value= "${directoryNamePath}"/>
+								</else>
+							</if>
+
+							<propertyregex property="xmlNamePath" input="@{currentFile}"
+								regexp="xmlName" replace=""
+								casesensitive="true" override="true" defaultValue="NA"/>
+
+							<if>
+								<contains string="${xmlNamePath}" subString="NA"/>
+								<then>
+									<echo>Empty Node name</echo>
+								</then>
+								<else>
+									<substring text="${xmlNodeDir}" property="subtext" />
+									<substring text="${xmlNamePath}" property="subtextXMLName" />
+										<echo>---------------------------</echo>	
+										<echo>Directory Name: [${subtext}] and Node Name [${subtextXMLName}]</echo>
+
+										<!-- sfdx force:source:retrieve -u bhushancicd@deshpande.in -m ApexClass -p force-app/main/default/classes1/ - -verbose -->
+
+										<trycatch>
+											<try>
+												<exec executable="cmd" 
+													resultproperty="SFDX.metadatdownload.Result" 
+													outputproperty="SFDX.metadatdownload.output" 
+													failonerror="true">
+													<arg line="/c sfdx force:source:retrieve -m ${subtextXMLName} -u ${sfsb.username} --verbose "/>
+												</exec>
+												<echo>---------------------------</echo>
+											</try>
+											<catch>
+												<echo>${line.separator} *** Unsupported Metadata Type: ${subtextXMLName} ***</echo>
+											</catch>
+										</trycatch>
+								</else>
+							</if>
+						</then>
+					</if>
+				</sequential>
+			</for> 
+		</sequential>
+	</macrodef>
+
+	<macrodef name="checkInToGit" description="Checkin to Git all list of supported metadata">
+		<sequential>
+			<var name="branchName" value=""/>
+			<replacoriginestring text="${env.GIT_BRANCH}" property="replaceText" />
+
+			<echo>Moving to force-app\main\default directory </echo>
+			<exec executable="git ">
+				<arg line=" pull -v --progress 'origin'"></arg>
+			</exec>
+			<echo>-----------------------------------------------------</echo>
+			<echo>executing following Git Command </echo>
+			<echo>$ git add --all</echo>
+			<echo>$ git status</echo>
+			<echo>git commit -m 'commit of all files FROM the Org to the repository' </echo>
+			<echo>-----------------------------------------------------</echo>
+			<!-- git config - -local core.autocrlf false -->
+			<exec executable="git">
+				<arg line=" git config - -local core.autocrlf true "></arg>
+			</exec>
+			<exec executable="git">
+				<arg line=" add --all"></arg>
+			</exec>
+			<exec executable="git">
+				<arg line=" status"></arg>
+			</exec>
+
+			<tstamp>
+				<format property="todayDate" pattern="dd-mmm-yyyy HH:mm:ss" locale="en"/>
+			</tstamp>
+
+			<exec executable="git">
+				<arg line=" commit -m 'commit of all files FROM the Org to the repository dated on ${todayDate}'"></arg>
+			</exec>
+			<exec executable="git">
+				<arg line=" push --progress origin HEAD:${replaceText}  --force "></arg>
+			</exec>
+
+		</sequential>
+	</macrodef>
+
+	<scriptdef name="substring" language="javascript">
+		<attribute name="text" />
+		<attribute name="start" />
+		<attribute name="end" />
+		<attribute name="property" />
+		<![CDATA[
+		  var text = attributes.get("text");
+		  var start = attributes.get("start") || 2;
+		  var end = attributes.get("end") || text.length();
+		  text = text.trim().replace(/\s+/, "");
+		  text = text.trim().replace(":", "");
+		  text = text.trim().replace(",", "");
+		  text = text.replaceAll("^\"|\"$", "");
+		  /*   project.setProperty(attributes.get("property"), text.substring(start, end));*/ 
+		  project.setProperty(attributes.get("property"), text.substring(start, end));
+		]]>
+	 </scriptdef>
+
+	 <scriptdef name="replacoriginestring" language="javascript">
+		<attribute name="text" />
+		<attribute name="property" />
+		<![CDATA[
+
+		var echo = project.createTask("echo");
+		  var text = attributes.get("text");
+
+		  echo.setMessage("input text : " + text );
+			echo.perform( );
+
+		  var replacetext = text.trim().replace("origin", "");
+
+		  replacetext = replacetext.replaceAll("^\"|\"$", "");
+		  replacetext =  replacetext.substring(1, replacetext.length());
+
+		  echo.setMessage("3-replace text: " + replacetext );
+		  echo.perform( );
+		  project.setProperty(attributes.get("property"), replacetext);
+		]]>
+	 </scriptdef>
+
+</project>

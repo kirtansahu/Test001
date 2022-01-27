@@ -1,0 +1,125 @@
+<project name="CICD" basedir="." xmlns:sf="antlib:com.salesforce">
+
+    <property name="mainDir" value="."/>
+    <property environment="env"/>
+	<property file="CISupport/Sandbox/taskExecution.properties"/>
+	<taskdef resource="net/sf/antcontrib/antlib.xml" 
+              classpath="CISupport/lib/ant-contrib-1.0b3.jar"/>
+ <property name="property.file.path" value="CISupport/Sandbox/Sandbox_default.properties"/>	
+			
+    <!-- Setting default value for username, password and session id properties to empty string 
+         so unset values are treated as empty. Without this, ant expressions such as ${sf.username}
+         will be treated literally.
+    -->
+	<!-- was commented
+    <condition property="sf.username" value=""> <not> <isset property="sf.username"/> </not> </condition>
+    <condition property="sf.password" value=""> <not> <isset property="sf.password"/> </not> </condition>
+    <condition property="sf.sessionId" value=""> <not> <isset property="sf.sessionId"/> </not> </condition>
+	-->
+
+	<target name="startCICD">
+			<delete dir="deploy-sf"/>
+			<mkdir dir="deploy-sf"/>							
+			<echo>OS Name is ${os.name}</echo>
+			<if>
+				<contains string="${os.name}" subString="Linux"/>
+				<then>
+					<property name="executableType" value="/bin/sh"/>
+					<property name="jwtKeyFileType" value="${jwtKeyFile_Linux}"/>
+				</then>
+				<else>
+					<property name="executableType" value="cmd"/>
+					<property name="jwtKeyFileType" value="${jwtKeyFile_Win}"/>
+				</else>
+			</if>
+			<!-- Deploy Only -->
+			<if>
+				<equals arg1="${Build_Type}" arg2="Deploy"/>
+				<then>
+					<ant antfile="${mainDir}/build_metadata.xml" target="SFDX_Auth_Deploy" dir="${mainDir}">
+							<property file="${property.file.path}"/>
+					</ant>
+				</then>
+			</if>
+
+			<!-- Vaildate Only -->
+			<if>
+				<equals arg1="${Build_Type}" arg2="Validate Only"/>
+				<then>
+					<ant antfile="${mainDir}/build_metadata.xml" target="SFDX_Auth_Vaildate_Only" dir="${mainDir}">
+							<property file="${property.file.path}"/>
+					</ant>
+				</then>
+			</if>
+
+			<!-- Rollback Only -->
+			<if>
+				<equals arg1="${Build_Type}" arg2="Rollback"/>
+				<then>
+				<!-- <ant antfile="${mainDir}/build_metadata.xml" target="SFDX_Auth_Rollback" dir="${mainDir}">
+							<property file="${property.file.path}"/>
+					</ant> -->
+				<ant antfile="${mainDir}/build_metadata_Rollback.xml" target="SFDX_Auth_Rollback" dir="${mainDir}">
+					<property file="${property.file.path}"/>
+				</ant>
+				</then>
+			</if>
+
+			<!--Data Loader in case of successful Deployment -->
+			<if>
+				<equals arg1="${Build_Type}" arg2="Deploy"/>
+				<then>
+					<!--data loader one time-->
+					<if>
+						<equals arg1="${execute.data-loader-one-time}" arg2="true" />
+						<then>
+							<echo>${line.separator} ${line.separator} [Step 3] : DATA LOADING ONE TIME START ${line.separator}</echo>
+							<echo>${line.separator}</echo>
+							<!--test data loader -->
+				
+							<ant antfile="${mainDir}/build_metadata_onetime.xml" target="upsertData" useNativeBasedir="true">
+								<property file="${property.file.path}"/>		
+							</ant>	
+							<!--test data loader -->
+					
+							<echo>${line.separator} ${line.separator} DATA LOADING ONE TIME END ${line.separator}</echo>
+						</then>
+						<else>
+							<echo>${line.separator} ${line.separator} SKIPPING  DATA LOADING ONE TIME ${line.separator}</echo>
+						</else>
+					</if>
+					<!--data loader -->
+					<if>
+						<equals arg1="${execute.data-loader}" arg2="true" />
+						<then>
+							<echo>${line.separator} ${line.separator} [Step 3] : DATA LOADING START ${line.separator}</echo>
+							<echo>${line.separator}</echo>
+							<!--test data loader -->
+				
+							<ant antfile="${mainDir}/build_Dataloader.xml" target="upsertData" useNativeBasedir="true">
+								<property file="${property.file.path}"/>		
+							</ant>	
+							<!--
+							<ant antfile="${mainDir}/build_Dataloader_with_delete.xml" target="deleteAndupsertData" useNativeBasedir="true">
+								<property file="${property.file.path}"/>	 	
+							</ant>-->
+							<!--test data loader -->
+					
+							<echo>${line.separator} ${line.separator} DATA LOADING END ${line.separator}</echo>
+						</then>
+						<else>
+							<echo>${line.separator} ${line.separator} SKIPPING  DATA LOADING ${line.separator}</echo>
+						</else>
+					</if>	
+				</then>
+			</if>
+			<if>
+				<equals arg1="${Build_Type}" arg2="QualityCheck"/>
+				<then>
+					<ant antfile="${mainDir}/build_qualityCheck_Metadata.xml" target="QualityCheck" dir="${mainDir}">
+							<property file="${property.file.path}"/>
+					</ant>
+				</then>
+			</if>		
+	</target>
+</project> 

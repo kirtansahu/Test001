@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- ################################################################################################### 
+ @author   Persistent Systems 
+ @date     3-28-2017
+ @description  - This file contain all the tasks/targets needed for the supported salesforce metadata 
+				 migration to the target org. It has the logic to get the salesforce session id of the
+				 target org, response parsing, builddetails object record creation, runquery, incremental
+				 deployment, full deployment etc.
+				 
+				 Any metadata related changes needed need to be carried out in this file.
+				  
+#########################################################################################################
+-->
+
+<project name="Tasks for metadata migration" basedir="." xmlns:sf="antlib:com.salesforce">
+    
+    <!-- <property file="../build.properties"/> -->
+   <!-- <property file="default.properties"/> -->
+    <!-- <property  file="${property.file.path}"/> -->
+	<property environment="env"/>
+    
+  
+    <!-- Define salesforce migration tool task  -->
+    <taskdef resource="com/salesforce/antlib.xml" uri="antlib:com.salesforce">
+        <classpath>
+            <pathelement location="CISupport/lib/ant-salesforce.jar" />
+        </classpath>
+    </taskdef>
+    
+    <!-- Define ant contib task to have complex logic like if else and for loop etc. -->
+    <taskdef resource="net/sf/antcontrib/antlib.xml" 
+              classpath="${ant.contrib.jar}" />
+	
+    <path id="Encodebase64.path">
+        <pathelement location="${ant.java.commons-codec.jar}"/>
+        <pathelement location="${ant.git.salesforce.incremental.jar}"/>
+    </path>
+    <!-- Define ant http task to make http get and post to salesforce for data -->  
+	<taskdef name="http" 
+             classname="org.missinglink.ant.task.http.HttpClientTask" classpath="${ant.http.jar}"/> 
+    
+    
+    <!-- Define xmltask to parse xml and add node to xml etc. -->
+    <taskdef name="xmltask" 
+             classname="com.oopsconsultancy.xmltask.ant.XmlTask" classpath="${ant.xmltask.jar}"/>
+    
+        <!-- Define custom prepartepackagexml task to create package xml from git change log-->
+    <taskdef name="preparepackagexml" 
+             classname="CreatePackgeXML" classpath="${ant.git.salesforce.incremental.jar}"/>
+    
+    
+    <!-- Define custom copyfiles task to prepare deployment folder from git using package xml-->
+    <taskdef name="copyfiles" 
+             classname="CopyFilesUsingPackageXML" classpath="${ant.git.salesforce.incremental.jar}"/>
+    
+    <!-- Define custom EncodeBase64 task to convert zip back up to base64 so that it can be post to SF -->
+    <taskdef name="EncodeBased64" classpathref="Encodebase64.path"
+             classname="EncodeBased64Binary"  />
+
+    <!-- Define custom mergePackageXml task to merge OneOff-package-xml with package-xml-->
+    <taskdef name="mergePackageXml" 
+             classname="MergePackageXML" classpath="${ant.git.salesforce.incremental.jar}"/>
+	
+	
+	<!-- Define custom cleanpermission task for cleaning profiles/permissionsets not included in the src -->
+	    <taskdef name="cleanPermissions" 
+	             classname="PreparePermissions" classpath="${ant.git.salesforce.incremental.jar}"/>
+
+	
+	
+	<macrodef name="executeAnonymous" description="Invoke ExecuteAnonymous using Salesforce Tooling API">
+		<text name="apexcode"/>
+		<sequential>
+			<!-- Login to populate serverUrl / sessionId / instance -->
+			<!-- Execute using HTTP GET -->
+			<http url="${sf.executeAnonymous.endpoint}" method="GET" 
+				  outfile="executeAnonymousResult.json"  statusProperty="loginResponseStatus" >
+				<headers>
+					<header name="Authorization" value="Bearer ${sessionId}"/>
+				</headers>
+				<query>
+					<parameter name="anonymousBody" value="@{apexcode}"/>
+				</query>
+			</http>
+			<!-- Fail on error -->
+			<loadfile property="executeAnonymousResult" srcFile="executeAnonymousResult.json" />
+			<if>
+                <!-- failed -->
+				<resourcecontains resource="executeAnonymousResult.json" substring="&quot;success&quot;:false" />
+                <then>
+					<!--<echo>${line.separator} ${line.separator} *** Execute Anonymous failed : </echo>-->
+					<echo message=" ${line.separator} ***" />
+					<!-- you want mark the build as fail -->
+					<fail message="Execute Anonymous failed: ${executeAnonymousResult}"> 
+					</fail> 
+                </then>
+				<else>
+					<!-- Show output -->
+					<echo>${line.separator} *** Execute Anonymous Success *** </echo>
+					<echo message="${line.separator} ${executeAnonymousResult} ***" />
+			   </else>
+            </if>
+			
+		</sequential>
+	</macrodef>
+
+	<!-- Login into Salesforce and return the session Id and serverUrl using http task-->
+    <macrodef name="login">
+        <attribute name="username" description="Salesforce user name."/>
+        <attribute name="password" description="Salesforce password."/>
+        <attribute name="serverurl" description="Server Url property."/>
+        <attribute name="sessionId" description="Session Id property."/>
+        <attribute name="loginUrl" description="Session Id property."/>
+        
+        <sequential>
+            
+            <!-- Obtain Session Id via Login SOAP service -->
+            <http url="@{loginUrl}" method="POST" failonunexpected="false"
+                entityProperty="loginResponse" statusProperty="loginResponseStatus" 
+                printrequestheaders="false" printresponseheaders="false" printrequest="false">
+                <headers>
+                    <header name="Content-Type" value="text/xml"/>
+                    <header name="SOAPAction" value="login"/>
+                </headers>
+                <entity>
+                    <![CDATA[
+                    <env:Envelope xmlns:xsd='http://www.w3.org/2001/XMLSchema' 
+                        xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' 
+                        xmlns:env='http://schemas.xmlsoap.org/soap/envelope/'>
+                        <env:Body>
+                            <sf:login xmlns:sf='urn:enterprise.soap.sforce.com'>
+                                <sf:username>@{username}</sf:username>
+                                <sf:password>@{password}</sf:password>
+                            </sf:login>
+                        </env:Body>
+                    </env:Envelope>
+                    ]]>
+                </entity>
+            </http>
+			
+			<!-- <echo>${line.separator} **** ${loginResponse} ****${line.separator}</echo> -->
+            
+            <!-- Parse response -->
+            
+            <xmltask destbuffer="loginResponseBuffer">
+                <insert path="/">${loginResponse}</insert>
+            </xmltask>
+            <if>
+                <!-- Success? -->
+                <equals arg1="${loginResponseStatus}" arg2="200"/>
+                <then>
+                    <!-- Parse sessionId and serverUrl -->
+                    <xmltask sourcebuffer="loginResponseBuffer" failWithoutMatch="true">
+                        <copy path="/*[local-name()='Envelope']/*[local-name()='Body']/:loginResponse/:result/:sessionId/text()"
+                          property="@{sessionId}"/>
+                        <copy path="/*[local-name()='Envelope']/*[local-name()='Body']/:loginResponse/:result/:serverUrl/text()"
+                          property="@{serverUrl}"/>
+                    </xmltask>
+                </then>
+                <else>
+                    <!-- Parse login error message and fail build -->
+                    <xmltask sourcebuffer="loginResponseBuffer" failWithoutMatch="true">
+                        <copy 
+                          path="/*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='Fault']/*[local-name()='faultstring']/text()" 
+                          property="faultString"/>
+                    </xmltask>
+                    <fail message="${faultString}" />
+                </else>
+            </if>
+        </sequential>
+    </macrodef>
+
+	<macrodef name="exectuteScript">		
+		<attribute name="scriptdir" />
+		<attribute name="pattern" default="*.*"/>
+		<sequential>
+			<echo message="${line.separator} ${line.separator} *** Executing Apex Script ***"/>
+			
+			<for param="file">
+				<path>
+				   <fileset dir="@{scriptdir}" includes="@{pattern}"/>
+				</path>
+				<sequential>
+					<echo message="${line.separator} *** Script file *** @{file}"/>
+					<loadfile property="filecontain" srcFile="@{file}"/>
+					<echo message="${line.separator} ****Script**** ${line.separator}"/>
+					<echo message="${line.separator}${filecontain}${line.separator}"/>
+					<executeAnonymous >
+						<![CDATA[
+								${filecontain}
+						]]>
+					</executeAnonymous>
+					<var name="filecontain" unset="true"/>
+				</sequential>
+			</for> 
+			<echo message="${line.separator}${line.separator}*** END ***"/>
+		</sequential>
+		
+	</macrodef>
+
+	<target name="readscript" >
+			<login username="${sfsb.username}" password="${sfsb.password}" serverurl="${sfsb.serverurl}" sessionId="sessionId"
+					   loginUrl="${sf.login.url}"/>		   
+			<exectuteScript  scriptdir="${sf.apex.script.path}"  pattern="*.txt" />		
+	</target>
+
+	<target name="proxy">
+		 <if>
+			<equals arg1="${use.proxy}" arg2="true" />
+			<then>
+				<property name="proxy.host" value="${proxy.host.name}" />
+				<property name="proxy.port" value="${proxy.port.no}"/>
+				<property name="proxy.user" value="${proxy.user.name}"/>
+				<property name="proxy.pwd" value="${proxy.user.password}"/>
+		 <!-- <property name="proxy.pwd" value="${proxy.user.passwordencryped}"/> -->		 
+				<setproxy proxyhost="${proxy.host}" proxyport="${proxy.port}" proxyuser="${proxy.user}" proxypassword="${proxy.pwd}" />
+			</then>
+			<else>
+				<echo>${line.separator} ${line.separator} NOT USING PROXY  ${line.separator}</echo>
+			</else>
+		</if>
+	</target>
+</project>

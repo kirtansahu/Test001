@@ -1,0 +1,40 @@
+<project name="Run Test and generate report" basedir=".">
+<property file="${properties.file}"/>
+<path id="third-party-classpath">
+    <fileset dir="./CISupport/lib">
+        <include name="*.jar" />
+    </fileset>
+</path>
+
+<target name="runAsynchronousTest" >   
+	    
+		<echo>"${sfsb.serverurl}</echo>
+		<java classname="salesforce_rest.RunAsynchronousTest" classpath="./CISupport/lib/AsynchronousTestRun.jar" failonerror="true">
+			<classpath>
+				<pathelement location="." />
+				<path refid="third-party-classpath" />
+			</classpath>
+			<arg value="${sfsb.username}"/>
+			<arg value="${sfsb.password}"/>
+			<arg value="${sfsb.serverurl}"/>
+			<arg value="${client.id}"/>
+			<arg value="${client.secret}"/>
+	    </java>	
+</target>
+
+<target name="generateClassCoverageReport">   
+	    <java classname="salesforce_rest.CodeCoverageReport" classpath="./CISupport/lib/AsynchronousTestRun.jar" failonerror="true">
+			<classpath>
+				<pathelement location="." />
+				<path refid="third-party-classpath" />
+			</classpath>
+			<arg value="${sfsb.username}"/>
+			<arg value="${sfsb.password}"/>
+			<arg value="${sfsb.serverurl}"/>
+			<arg value="${client.id}"/>
+			<arg value="${client.secret}"/>
+			<arg value='./'/>
+	    </java>	
+</target>
+
+</project>

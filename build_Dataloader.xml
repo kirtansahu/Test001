@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- ################################################################################################### 
+ @author   Persistent Systems 
+ @date     3-28-2017
+ @description  - This file has the definations for salesforce data insert,upsert,export operations. 
+				 This is the file which need to be updated for the additional operations like import,
+				 delete operations.Currently, it has target for upsert operations, create the new targets
+				 based on the need in this file.
+				  
+#########################################################################################################
+-->
+
+<project name="Tasks for Salesforce data operation" basedir="." xmlns:sf="antlib:com.salesforce">	
+    
+    <property name="dataLoaderAPIVersion" value="52.0.0" />
+	
+    <property environment="env"/>	
+
+	<echo>${line.separator} ${line.separator} [Step 1] JAVA class Path ${basedir}/${ant.external.lib}/dataloader-${dataLoaderAPIVersion}-uber.jar ${line.separator}</echo>
+
+    <macrodef name="sfUpsert">
+     <attribute name="object"/>
+	<attribute name="basedir"/>
+	<attribute name="orgname"/>
+	<attribute name="username"/>
+	<attribute name="password"/>
+	<attribute name="orgserver"/>
+	<attribute name="externalIdField"/>
+	<attribute name="dataLoaderAPIVersion"/>
+	<attribute name="proxyhostname"/>
+	<attribute name="proxyport"/>	
+	<attribute name="proxyusername"/>
+	<attribute name="proxypasswordencrypted"/>
+	
+	<sequential>
+	    <echo message="Upserting @{object}"/>
+		<mkdir dir="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+	    <copy file="@{basedir}/${dataloader.property.path}/datascripts/template-upsert-process-conf.xml" tofile="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml" overwrite="true" failonerror="true"/>
+	    <replace file="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml">
+	        <replacefilter token="_ORGSERVER_" value="@{orgserver}"/>
+	        <replacefilter token="_USERNAME_" value="@{username}"/>
+	        <replacefilter token="_ENCRYPTED_PASSWORD_" value="@{password}"/>
+	        <replacefilter token="_ENCRYPTION_KEY_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/dataloader_encryption_key.txt"/>
+	        <replacefilter token="_DEBUG_MSG_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/debug.log"/>
+	        <replacefilter token="_OBJECT_" value="@{object}"/>
+	        <replacefilter token="_DATA_FILENAME_" value="@{basedir}/${dataloader.property.path}/datascripts/datafiles/@{object}Upsert.csv"/>
+	        <replacefilter token="_MAPPING_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/mappingfiles/@{object}UpsertMap.sdl"/>
+	        <replacefilter token="_OUTPUT_SUCCESS_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Upsert_success.csv"/>
+	        <replacefilter token="_OUTPUT_ERROR_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Upsert_error.csv"/>
+	    	<replacefilter token="_EXTERNAL_ID_FIELD_" value="@{externalIdField}"/>
+	    	<replacefilter token="_PROCESS_NAME_" value="@{object}UpsertProcess"/>
+			<replacefilter token="_PROXY_HOST_" value="@{proxyhostname}"/>
+			<replacefilter token="_PROXY_PORT_" value="@{proxyport}"/>
+			<replacefilter token="_PROXY_USER_NAME_" value="@{proxyusername}"/>
+			<replacefilter token="_PROXY_PASSWORD_" value="@{proxypasswordencrypted}"/>	
+	    </replace>
+            <java classname="com.salesforce.dataloader.process.ProcessRunner" classpath="CISupport/lib/dataloader-52.0.0-uber.jar" failonerror="true">
+	        <sysproperty key="salesforce.config.dir" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+	        <arg line="process.name=upsertObject"/>
+	    </java>
+        </sequential>
+    </macrodef>
+	
+	<macrodef name="sfInsert">
+    <attribute name="object"/>
+	<attribute name="basedir"/>
+	<attribute name="orgname"/>
+	<attribute name="username"/>
+	<attribute name="password"/>
+	<attribute name="orgserver"/>
+	<attribute name="externalIdField"/>
+	<attribute name="dataLoaderAPIVersion"/>
+	<attribute name="proxyhostname"/>
+	<attribute name="proxyport"/>	
+	<attribute name="proxyusername"/>
+	<attribute name="proxypasswordencrypted"/>
+
+	<sequential>
+	    <echo message="Inserting @{object}"/>
+		<mkdir dir="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+	    <copy file="@{basedir}/${dataloader.property.path}/datascripts/template-insert-process-conf.xml" tofile="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml" overwrite="true" failonerror="true"/>
+	    <replace file="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml">
+	        <replacefilter token="_ORGSERVER_" value="@{orgserver}"/>
+	        <replacefilter token="_USERNAME_" value="@{username}"/>
+	        <replacefilter token="_ENCRYPTED_PASSWORD_" value="@{password}"/>
+	        <replacefilter token="_ENCRYPTION_KEY_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/dataImportKey.key"/>
+	        <replacefilter token="_DEBUG_MSG_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/debug.log"/>
+	        <replacefilter token="_OBJECT_" value="@{object}"/>
+	        <replacefilter token="_DATA_FILENAME_" value="@{basedir}/${dataloader.property.path}/datascripts/datafiles/@{object}Insert.csv"/>
+	        <replacefilter token="_MAPPING_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/mappingfiles/@{object}InsertMap.sdl"/>
+	        <replacefilter token="_OUTPUT_SUCCESS_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Insert_success.csv"/>
+	        <replacefilter token="_OUTPUT_ERROR_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Insert_error.csv"/>
+	    	<replacefilter token="_EXTERNAL_ID_FIELD_" value="@{externalIdField}"/>
+	    	<replacefilter token="_PROCESS_NAME_" value="@{object}Insert"/>
+			<replacefilter token="_PROXY_HOST_" value="@{proxyhostname}"/>
+			<replacefilter token="_PROXY_PORT_" value="@{proxyport}"/>
+			<replacefilter token="_PROXY_USER_NAME_" value="@{proxyusername}"/>
+			<replacefilter token="_PROXY_PASSWORD_" value="@{proxypasswordencrypted}"/>
+	    </replace>
+            <java fork="yes" classname="com.salesforce.dataloader.process.DataLoaderRunner" classpath="${basedir}/${ant.external.lib}/dataloader-52.0.0-uber.jar" failonerror="true">
+	        <!-- <sysproperty key="salesforce.config.dir" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/> -->
+			<arg line="salesforce.config.dir=@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"  />
+			<arg line="run.mode=batch"/>
+			<arg line="process.name=insertObject"/>
+	    </java>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="sfExport">
+        <attribute name="object"/>
+		<attribute name="basedir"/>
+		<attribute name="orgname"/>
+		<attribute name="username"/>
+		<attribute name="password"/>
+		<attribute name="orgserver"/>
+		<attribute name="soql"/>
+		<attribute name="dataLoaderAPIVersion"/>
+		<attribute name="proxyhostname"/>
+		<attribute name="proxyport"/>	
+		<attribute name="proxyusername"/>
+		<attribute name="proxypasswordencrypted"/>
+
+        <sequential>
+            <echo message="Exporting ${object}"/>
+			
+            <mkdir dir="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data"/>
+            <copy file="@{basedir}/${dataloader.property.path}/datascripts/template-export-process-conf.xml" tofile="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml" overwrite="true" failonerror="true"/>
+            <replace file="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/process-conf.xml">
+                <replacefilter token="_ORGSERVER_" value="@{orgserver}"/>
+                <replacefilter token="_USERNAME_" value="@{username}"/>
+                <replacefilter token="_ENCRYPTED_PASSWORD_" value="@{password}"/>
+                <replacefilter token="_ENCRYPTION_KEY_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/dataloader_encryption_key.txt"/>
+                <replacefilter token="_DEBUG_MSG_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/debug.log"/>
+                <replacefilter token="_OBJECT_" value="@{object}"/>
+                <replacefilter token="_DATA_FILENAME_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Export.csv"/>
+                <replacefilter token="_MAPPING_FILE_" value="@{basedir}/${dataloader.property.path}/datascripts/mappingfiles/@{object}ExportMap.sdl"/>
+                <replacefilter token="_OUTPUT_SUCCESS_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Export_success.csv"/>
+                <replacefilter token="_OUTPUT_ERROR_FILE_" value="@{basedir}/${dataloader.property.path}/orgs/@{orgname}/data/@{object}Export_error.csv"/>
+                <replacefilter token="_EXTRACTION_SOQL_" value="@{soql}"/>
+				<replacefilter token="_PROXY_HOST_" value="@{proxyhostname}"/>
+				<replacefilter token="_PROXY_PORT_" value="@{proxyport}"/>
+				<replacefilter token="_PROXY_USER_NAME_" value="@{proxyusername}"/>
+				<replacefilter token="_PROXY_PASSWORD_" value="@{proxypasswordencrypted}"/>
+            </replace>
+
+            <java classname="com.salesforce.dataloader.process.ProcessRunner" classpath="@{basedir}/${ant.external.lib}/dataloader-@{dataLoaderAPIVersion}-uber.jar" failonerror="true">
+                <sysproperty key="salesforce.config.dir" value="@{basedir}/orgs/@{orgname}/data"/>
+                <arg line="process.name=exportObject"/>
+            </java>
+        </sequential>
+    </macrodef>
+
+    <target name="initDataDirectory" description="Removes and re-creates a blank data directory in orgs/${orgname}">
+        <delete dir="${basedir}/${dataloader.property.path}/orgs/${orgname}/data"/>
+    </target>
+
+    <target name="exportData" description="Export Salesforce objects">
+        <sfExport object="${object}" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" username="${sf.username}" password="${sf.passwordencrypted}" soql="${soql}" />
+    </target>
+	
+    <target name="upsertData" description="Upsert Salesforce objects">	
+		<echo>${line.separator} *********Upsert operation start*************</echo>
+		<echo>${sf.orgserver} *********sf orgserver*************</echo>
+		<echo>${basedir} *********basedir*************</echo>
+		<echo>${orgname} *********orgname*************</echo>		
+	
+        <!-- <sfUpsert object="Employee__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		proxyusername="${proxy.user.name}" proxypasswordencrypted="${proxy.user.passwordencrypted}" externalIdField="email__c" />		 -->
+		
+		 <!-- <sfInsert object="Product2" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		 username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		proxyusername="${proxy.user.name}" proxypasswordencrypted="${proxy.user.passwordencrypted}" externalIdField="null" /> -->	
+		
+		<sfInsert object="Student__c" orgserver="${sf.orgserver}" basedir="${basedir}" orgname="${orgname}" dataLoaderAPIVersion="${dataLoaderAPIVersion}" 
+		username="${sf.username}" password="${sf.passwordencrypted}" proxyhostname="${proxy.host.name}" proxyport="${proxy.port.no}"
+		proxyusername="${proxy.user.name}" proxypasswordencrypted="${proxy.user.passwordencrypted}" externalIdField="null" />
+    </target>
+
+    <target name="updateDataFiles" description="Refreshes the data files found in datascripts/datafiles from a specified org's data directory.  This expects the exportData target to have been run first to generate output CSV data load files.  Invoke with -Dorg=[org name, ex. asdevqa] to specify the org to copy files from." >
+        <copy todir="${basedir}/${dataloader.property.path}/datascripts/datafiles">
+            <fileset dir="${basedir}/${dataloader.property.path}/orgs/${org}/data" includes="**/*Export.csv"/>
+	    <mapper type="glob" from="*Export.csv" to="*Insert.csv"/>
+        </copy>
+    </target>
+
+</project>

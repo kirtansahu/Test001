@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ################################################################################################### 
+ @author   Persistent Systems for ThermoFisher 
+				  
+#########################################################################################################
+-->
+
+<project name="Tasks for Code Quality" basedir="." xmlns:sf="antlib:com.salesforce">
+    
+	    <!-- <property file="../build.properties"/> -->
+   <!-- <property file="default.properties"/> -->
+    <!-- <property  file="${property.file.path}"/> -->
+	<property environment="env"/>
+    
+  
+    <!-- Define salesforce migration tool task  -->
+    <taskdef resource="com/salesforce/antlib.xml" uri="antlib:com.salesforce">
+        <classpath>
+            <pathelement location="CISupport/lib/ant-salesforce.jar" />
+        </classpath>
+    </taskdef>
+
+	<taskdef resource="net/sf/antcontrib/antlib.xml" 
+              classpath="CISupport/lib/ant-contrib-1.0b3.jar"/>
+    
+    <!-- Define ant contib task to have complex logic like if else and for loop etc. -->
+    <taskdef resource="net/sf/antcontrib/antlib.xml" 
+              classpath="${ant.contrib.jar}" />
+	
+    <path id="Encodebase64.path">
+        <pathelement location="${ant.java.commons-codec.jar}"/>
+        <pathelement location="${ant.git.salesforce.incremental.jar}"/>
+    </path>
+    <!-- Define ant http task to make http get and post to salesforce for data -->  
+	<taskdef name="http" 
+             classname="org.missinglink.ant.task.http.HttpClientTask" classpath="${ant.http.jar}"/> 
+    
+    <!-- Define xmltask to parse xml and add node to xml etc. -->
+    <taskdef name="xmltask" 
+             classname="com.oopsconsultancy.xmltask.ant.XmlTask" classpath="${ant.xmltask.jar}"/>
+    
+    <!-- Define custom EncodeBase64 task to convert zip back up to base64 so that it can be post to SF -->
+    <taskdef name="EncodeBased64" classpathref="Encodebase64.path"
+             classname="EncodeBased64Binary"  />
+
+	<!-- Define custom cleanpermission task for cleaning profiles/permissionsets not included in the src -->
+	    <taskdef name="cleanPermissions" 
+	             classname="PreparePermissions" classpath="${ant.git.salesforce.incremental.jar}" />
+
+	<property name="pmd.dir" value="C:\pmd-bin\lib\" /><!-- directory that contains pmd.jar -->
+	<path id="pmd.lib" >
+		<fileset dir="${pmd.dir}">
+			<include name="*.jar"/>
+			<exclude name="/rulesets" />
+		</fileset>
+	</path>
+	<taskdef name="cpd" classname="net.sourceforge.pmd.cpd.CPDTask" classpathref="pmd.lib" />
+
+	<taskdef name="pmd" classname="net.sourceforge.pmd.ant.PMDTask" classpathref="pmd.lib"/>
+
+	
+	<target name="QualityCheck">
+		<echo>QualityCheck_Type is ${QualityCheck_Type}</echo>
+		<runJWTAuth/>
+		
+		<switch value="${QualityCheck_Type}">
+			<case value="All">
+			  <echo message="The value of property is All" />
+			  	<!-- 1. PMD Scan -->
+				<PMD_Check/>
+
+				<!-- 2. Code Coverage -->
+				<runApexTests/>
+			</case>
+			<case value="PMD_Check">
+				<echo message="The value of property is PMD_Check" />
+					<!-- 1. PMD Scan -->
+					<PMD_Check/>
+			</case>
+			<case value="Apex_Coverage_Check">
+				<echo message="The value of property is Apex_Coverage_Check" />
+				<!-- 2. Code Coverage -->
+				<runApexTests/>
+			</case>
+			<default>
+				<echo message="The value of property is All" />
+			</default>
+		  </switch>
+	</target>
+
+
+		<!-- SFDX Authorization  -->
+	<macrodef name="runJWTAuth" description="Authorizes a Salesforce org using the JWT flow">
+		<sequential>
+			<echo>******************* JWT Authentication Started ******************************</echo>
+			<!-- JWTAuth.bat for windows and  JWTAuth.sh Linux 	-->
+<!-- 				<exec executable="JWTAuth.bat" resultproperty="SFDX.auth.Result" outputproperty="SFDX.auth.ResultResponse" failonerror="true"></exec> -->
+
+			
+			<exec executable="sfdx" resultproperty="SFDX.auth.Result" failonerror="true">
+			 	<arg line=" force:auth:jwt:grant"/>
+				<arg line=" -u ${sfsb.username}"/>
+				<arg line=" -f Certificate/server.key"/>
+				<arg line=" -i ${clientId}"/>
+				<arg line="  --json"/>
+				<arg line="  --loglevel error"/>
+				<arg line=" -r ${sfsb.serverurl}"/> 
+			</exec> 
+			
+				
+			<echo>Auth Result : ${SFDX.auth.Result}</echo> 
+			<echo>Auth Result Response</echo>
+			<echo>${SFDX.auth.ResultResponse}</echo>
+			<if>
+				<equals arg1="${SFDX.auth.Result}" arg2="0"/>
+				<then>
+					<echo>Authorization :Success</echo>
+				</then>
+				<else>
+					<echo>Authorization :Fail</echo>
+				</else>
+			</if>
+			<echo>******************* JWT Authentication Ended ******************************</echo>
+		</sequential>
+	</macrodef>
+
+		<macrodef name="PMD_Check" description="Analyze the code using PMD Ruleset and generate the result in html page">
+		<sequential>
+			<echo>******************* PMD Check Started ******************************</echo>
+
+			<pmd shortFilenames="true">
+				<ruleset>QualityCheck/PMDRuleSet/quickstart.xml</ruleset>
+				<formatter type="csv" toFile="deploy-sf/PMDResult.csv" toConsole="true"/>
+				<formatter type="summaryhtml" toFile="deploy-sf/PMDResult.html" toConsole="true"/>
+				<fileset dir="force-app/main/default">
+					<include name="**/*.cls"/>
+					<include name="**/*.CLS"/>
+					<include name="**/*.trigger"/>
+				</fileset>
+			</pmd>
+			<if>
+				<available file="deploy-sf/PMDResult.html"/>
+				<then>
+					<!-- <loadfile property="contents" srcFile="PMDResult.html" />
+					<echo message="${contents}" /> -->
+					<echo>Result is available at file deploy-sf/PMDResult.html </echo>
+				</then>
+				<else>
+				</else>
+			</if>
+			<echo>******************* PMD Check Ended ******************************</echo>
+		</sequential>
+	</macrodef>
+	
+	<macrodef name="runApexTests" description="Run the Apex test class and generate the result in json">
+		<sequential>
+			<echo>******************* Run Apex Local Tests Started ******************************</echo>
+
+			<exec executable="sfdx"
+			resultproperty="SFDX.apexTest.Result" 
+			outputproperty="SFDX.apexTest.output" 
+			failonerror="false">
+<!-- 				<arg line="/c "></arg> -->
+				<!-- below command is use to get the test result in json format
+					sfdx force:apex:test:run -y -l RunLocalTests -c -r json -d deploy-sf  -->
+				<arg line=" force:apex:test:run -l RunLocalTests -c -y -r human -u ${sfsb.username} --verbose" />
+			</exec>
+			<echo>Apex Test Response</echo>
+			<echo>${SFDX.apexTest.output}</echo>
+			<echo>******************* Run Apex Local Tests Ended ******************************</echo>
+		</sequential>
+	</macrodef>
+</project>

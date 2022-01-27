@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="CICD" xmlns:sf="antlib:com.salesforce" basedir=".">
+
+<property name="mainDir" value="."/>
+
+ <target name="startCICD"> 
+ 
+		<echo>${line.separator} ${line.separator} SALESFORCE METADATA DEPLOYMENT START ${line.separator}</echo>
+ 	    <ant antfile="${mainDir}/build_metadata.xml" target="Deploy-Incremental" dir="${mainDir}">
+		  <property file="${property.file.path}"/>
+		</ant>
+		<echo>${line.separator} ${line.separator} SALESFORCE METADATA DEPLOYMENT END ${line.separator}</echo>
+ </target>
+</project>

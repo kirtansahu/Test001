@@ -1,0 +1,11 @@
+<project name="Execution Config" basedir=".">
+ 
+	<property name="mainDir" value="." /> 
+	
+	<ant antfile="${mainDir}/Daisy/build_selenium.xml" target="test" useNativeBasedir="true">
+		<property file="${property.file.path}"/>
+		<property name="seleniumscriptpath" value="PreDeploy"/>
+	</ant>
+
+	
+</project>

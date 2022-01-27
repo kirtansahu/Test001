@@ -1,0 +1,77 @@
+<project name="Execution Config selenium" basedir=".">
+	
+	<!-- ========== Initialize Properties =================================== -->
+	
+  
+  	 
+  	<property name="org" value="${selenium.org}/${seleniumscriptpath}" /> 
+  	 <property name="report-dir" value="${org}/TestNGreport" /> 
+  	
+
+
+	<!-- set global properties for build -->
+	<property name="basedir" value="." />
+	<property name="lib" value="${basedir}/Daisy/lib" />
+	<property name="src" value="${basedir}/Daisy/src" />
+	<property name="bin" value="${basedir}/Daisy/bin" />
+	
+	
+	<!-- ====== Set the classpath ====  -->
+	<path id="classpath">
+		<fileset dir="${lib}">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+	
+	<!-- Delete directories  -->
+	<target name="delete-dir">
+		<delete dir="${bin}" />
+		<delete dir="${report-dir}" />
+	</target>
+	
+	<!-- Creating directories -->
+	<target name="create" depends="delete-dir">
+		<mkdir dir="${bin}" />
+		<mkdir dir="${report-dir}" />
+	</target>
+	
+	<!-- Compile the java code from ${src} into ${bin} -->
+	<target name="compile" depends="create">
+		<javac srcdir="${src}" classpathref="classpath" includeAntRuntime="No" destdir="${bin}" />
+	</target>
+	
+	<!-- Set proxy -->
+	<target name="proxy">
+		 <property name="proxy.host" value="${proxy.host.name}" />
+		 <property name="proxy.port" value="${proxy.port.no}"/>
+		 <property name="proxy.user" value="${proxy.user.name}"/>
+		 <property name="proxy.pwd" value="${proxy.user.password}"/>
+		 <!-- <property name="proxy.pwd" value="${proxy.user.passwordencryped}"/> -->		 
+		 <setproxy proxyhost="${proxy.host}" proxyport="${proxy.port}" proxyuser="${proxy.user}" proxypassword="${proxy.pwd}" />
+	</target>
+	
+	<!-- Runs the file and generates Reportng report for TestNG-->
+	<taskdef name="testng" classname="org.testng.TestNGAntTask" classpathref="classpath" />
+	
+	<target name="test">
+		<testng outputdir="${report-dir}" classpathref="classpath" useDefaultListeners="true" haltOnFailure="true">
+			<sysproperty key="browser" value="${browser.name}"/>
+			<sysproperty key="timeout" value="${browser.timeout}"/>
+			<sysproperty key="org" value="${selenium.org}/${seleniumscriptpath}"/>
+			<sysproperty key="url" value="${sfsb.serverurl}"/>
+			<sysproperty key="username" value="${sfsb.username}"/>
+			<sysproperty key="password" value="${selenium.password.withouttoken}"/>
+			
+			<sysproperty key="target" value="${daisy.target}"/>
+			<sysproperty key="platform" value="${daisy.platform}"/>
+			<sysproperty key="saucelabs_user" value="${sauce.labs.username}"/>
+			<sysproperty key="saucelabs_access_key" value="${sauce.labs.access.key}"/>
+			
+			<sysproperty key="use_proxy" value="${use.proxy}"/>
+			<sysproperty key="proxy_host" value="${proxy.host.name}"/>
+			<sysproperty key="proxy_port" value="${proxy.port.no}"/>
+			
+			<xmlfileset dir="./Daisy" includes="testng.xml" />
+		</testng>
+	</target>
+</project>

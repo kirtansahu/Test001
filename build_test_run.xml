@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Tasks for metadata migration" basedir="." xmlns:sf="antlib:com.salesforce">
+   <taskdef resource="com/salesforce/antlib.xml" uri="antlib:com.salesforce">
+        <classpath>
+            <pathelement location="CISupport/lib/ant-salesforce.jar" />
+        </classpath>
+    </taskdef>
+
+	<target name="runAllTests" >
+		<mkdir dir="tempsrc"/>
+		<copy file="CISupport/package.xml" todir="tempsrc" overwrite="true"/>
+		<sf:deploy username="${sfsb.username}" password="${sfsb.password}" serverurl="${sfsb.serverurl}" 
+					ignoreWarnings="true" 
+					deployRoot="./tempsrc"
+					rollbackOnError="true"
+					testLevel="RunLocalTests" 
+					checkOnly="true">
+		</sf:deploy>
+	</target>
+	<target name="validateFullDeploy" >
+		<echo>****DELETING ALL ENTITLEMENT PROCESSES FROM DEPLOYMENT PACKAGE****</echo>
+		<delete includeemptydirs="true">
+			<fileset dir="../src/entitlementProcesses" includes="**/*" defaultexcludes="false"/>			
+		</delete>
+		<echo>****DELETING ALL FLOWS FROM DEPLOYMENT PACKAGE****</echo>
+		<delete includeemptydirs="true">
+			<fileset dir="../src/flows" includes="**/*" defaultexcludes="false"/>			
+		</delete>
+		<sf:deploy username="${sfsb.username}" password="${sfsb.password}" serverurl="${sfsb.serverurl}" 
+					ignoreWarnings="true" 
+					deployRoot="../src"
+					rollbackOnError="true"
+					testLevel="RunLocalTests" 
+					checkOnly="true">
+		</sf:deploy>
+	</target>
+</project>

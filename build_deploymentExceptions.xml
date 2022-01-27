@@ -1,0 +1,37 @@
+<project name="deploymentExceptions" basedir="." xmlns:sf="antlib:com.salesforce">
+    <target name="RemoveUnwantedMetadata">
+        <echo message="Starting clean up for deployment " />
+		<!--<delete file="src/trigger/"/> -->
+        <echo message="...." />
+      
+        <echo message="Cleaning up Profile data" />
+    	<replaceregexp match="^    &lt;layoutAssignments&gt;\n        &lt;layout&gt;SocialPersona-Social Persona Layout&lt;/layout&gt;\n    &lt;/layoutAssignments&gt;$" replace="" flags="gm" byline="false">
+  	  	      <fileset dir="../src/profiles" includes="**/*.profile" />
+        </replaceregexp>
+        <replaceregexp match="^    &lt;layoutAssignments&gt;\n        &lt;layout&gt;SocialPost-Social Post Layout&lt;/layout&gt;\n    &lt;/layoutAssignments&gt;$" replace="" flags="gm" byline="false">
+  	  	      <fileset dir="../src/profiles" includes="**/*.profile" />
+        </replaceregexp>
+		<replaceregexp match="^    &lt;layoutAssignments&gt;\n        &lt;layout&gt;Question-Question Layout&lt;/layout&gt;\n    &lt;/layoutAssignments&gt;$" replace="" flags="gm" byline="false">
+  	  	      <fileset dir="../src/profiles" includes="**/*.profile" />
+        </replaceregexp>
+		<replaceregexp match="^    &lt;layoutAssignments&gt;\n        &lt;layout&gt;Reply-Reply Layout&lt;/layout&gt;\n    &lt;/layoutAssignments&gt;$" replace="" flags="gm" byline="false">
+  	  	      <fileset dir="../src/profiles" includes="**/*.profile" />
+        </replaceregexp>
+		<replaceregexp match="^    &lt;layoutAssignments&gt;\n        &lt;layout&gt;EntityMilestone-Object Milestone Layout&lt;/layout&gt;\n    &lt;/layoutAssignments&gt;$" replace="" flags="gm" byline="false">
+  	  	      <fileset dir="../src/profiles" includes="**/*.profile" />
+        </replaceregexp>
+		
+    	<replaceregexp match="^    &lt;userPermissions&gt;\n        &lt;enabled&gt;true&lt;/enabled&gt;\n        &lt;name&gt;ManageSandboxes&lt;/name&gt;\n    &lt;/userPermissions&gt;$" replace="" flags="gm" byline="false">
+              <fileset dir="../src/profiles" includes="**/*.profile" />
+        </replaceregexp>
+		
+		<replaceregexp match="^    &lt;tabVisibilities&gt;\n        &lt;tab&gt;standard-SocialPersona&lt;/tab&gt;\n        &lt;visibility&gt;DefaultOff&lt;/visibility&gt;\n    &lt;/tabVisibilities&gt;$" replace="" flags="gm" byline="false">
+              <fileset dir="../src/profiles" includes="**/*.profile" />
+        </replaceregexp>
+        <echo message="...." />
+        <echo message="Done cleaning up!" />
+    </target>
+</project>
+
+
+

@@ -1,0 +1,53 @@
+<project name="CICD" basedir="." xmlns:sf="antlib:com.salesforce">
+  
+	<property name="report.fld.name" value="report"/>
+
+	
+    <property environment="env"/>
+	<taskdef resource="net/sf/antcontrib/antlib.xml" 
+              classpath="CISupport/lib/ant-contrib-1.0b3.jar" />
+
+
+	<target name="packageReportFiles">
+		
+		<mkdir dir="${report.fld.name}"/>
+		<if>
+			<available file="${mainDir}/${org.dir}/Predeploy" type="dir" />		
+            <then>
+                <copy todir="${mainDir}/${report.fld.name}/Predeploy/" overwrite="false">
+                    <fileset dir="${mainDir}/${org.dir}/Predeploy"/>
+                </copy>
+				<delete>
+					<fileset dir="${mainDir}/${report.fld.name}/Predeploy" includes="**/*.xlsx"/>
+				</delete>
+            </then>
+		</if>
+		<if>
+			<available file="${mainDir}/${org.dir}/PostDeploy" type="dir" />		
+            <then>
+                <copy todir="${mainDir}/${report.fld.name}/PostDeploy/" overwrite="false">
+                    <fileset dir="${mainDir}/${org.dir}/PostDeploy"/>
+                </copy>
+				<delete>
+					<fileset dir="${mainDir}/${report.fld.name}/PostDeploy" includes="**/*.xlsx"/>
+				</delete>
+            </then>
+		</if>
+		<if>
+			<available file="${mainDir}/${org.dir}/DataLoaderScript/orgs/${orgname}/data" type="dir" />		
+            <then>
+                <copy todir="${mainDir}/${report.fld.name}/Dataloader/" overwrite="false">
+                    <fileset dir="${mainDir}/${org.dir}/DataLoaderScript/orgs/${orgname}/data"/>
+                </copy>
+            </then>
+		</if>
+		<if>
+			<available file="${mainDir}/${git.salesforce.root.dir}/${git.sf.deployment.fld.name}" type="dir" />		
+            <then>
+                <zip destfile="${mainDir}/${report.fld.name}/deployment.zip" basedir="${mainDir}/${git.salesforce.root.dir}/${git.sf.deployment.fld.name}"/> 	
+            </then>
+		</if>
+		<zip destfile="${mainDir}/report.zip" 	basedir="${mainDir}/${report.fld.name}"/> 					
+		 <delete dir="${mainDir}/${report.fld.name}"/>
+	</target>
+</project>
