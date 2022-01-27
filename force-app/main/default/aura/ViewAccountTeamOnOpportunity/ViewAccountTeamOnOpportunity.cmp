@@ -1,0 +1,127 @@
+<aura:component
+	controller="ViewAccountTeamOnOpportunity"
+	implements="force:appHostable,flexipage:availableForRecordHome,force:lightningQuickActionWithoutHeader,force:hasRecordId"
+	access="global"
+	extends="c:BaseComponent"
+>
+	<!--Attribute-->
+	<aura:attribute name="listofAccountTeam" type="List" />
+	<aura:attribute name="listofOppTeam" type="List" />
+	<aura:attribute name="accColumns" type="List" />
+	<aura:attribute name="oppColumns" type="List" />
+	<aura:attribute name="isAllAdded" type="Boolean" default="false" />
+	<aura:attribute name="isOnload" type="Boolean" default="false" />
+	<aura:attribute name="oppSelectedRows" type="List" />
+	<aura:attribute name="accSelectedRows" type="List" />
+	<aura:attribute name="hasAccess" type="Boolean" default="true" />
+	<aura:attribute name="errorMsg" type="String" />
+	<aura:attribute name="sortedBy" type="String" default="UserName" />
+	<aura:attribute name="sortedDirection" type="String" default="asc" />
+
+	<!--Handler-->
+	<aura:handler name="init" value="{! this}" action="{! c.doInit}" />
+
+	<!--Style-->
+	<aura:html tag="style">
+		.slds-modal__container{ height : auto; width: 70%; max-width: 70rem; }
+	</aura:html>
+
+	<!--Markup-->
+	<div class="slds-modal__header custom-modal-header">
+		<h4 class="title slds-text-heading- -medium" tabindex="0">
+			Add Opportunity Team Members
+		</h4>
+	</div>
+	<br />
+	<div
+		class="{!'slds-modal__content custom-form-'+($Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet)}"
+	>
+		<div>
+			<aura:if isTrue="{!v.hasAccess}">
+				<aura:set attribute="else">
+					<br /><b
+						><h1 class="slds-text-color_destructive" align="center"
+							>{! $Label.c.VIEWTEAM_ERRORMESSAGE}</h1
+						></b
+					><br />
+				</aura:set>
+			</aura:if>
+		</div>
+		<div>
+			<b>Account Team Member(s)</b>
+			<aura:if isTrue="{!v.hasAccess}">
+				<lightning:datatable
+					aura:Id="accTableId"
+					columns="{! v.accColumns }"
+					data="{! v.listofAccountTeam }"
+					keyField="Id"
+					onsort="{!c.updateColumnSorting}"
+					sortedBy="{!v.sortedBy}"
+					sortedDirection="{!v.sortedDirection}"
+				/>
+
+				<aura:set attribute="else">
+					<lightning:datatable
+						aura:Id="accTableId2"
+						columns="{! v.accColumns }"
+						data="{! v.listofAccountTeam }"
+						keyField="Id"
+						selectedRows="{! v.accSelectedRows }"
+						hideCheckboxColumn="true"
+						onsort="{!c.updateColumnSorting}"
+						sortedBy="{!v.sortedBy}"
+						sortedDirection="{!v.sortedDirection}"
+					/>
+				</aura:set>
+			</aura:if>
+		</div>
+
+		<br /><br />
+		<div>
+			<b>Opportunity Team Member(s)</b>
+			<br />
+			<aura:if isTrue="{!v.hasAccess}">
+				<lightning:datatable
+					aura:Id="oppTableId"
+					columns="{! v.oppColumns }"
+					data="{! v.listofOppTeam }"
+					selectedRows="{! v.oppSelectedRows }"
+					keyField="Id"
+				/>
+
+				<aura:set attribute="else">
+					<lightning:datatable
+						aura:Id="oppTableId2"
+						columns="{! v.oppColumns }"
+						data="{! v.listofOppTeam }"
+						hideCheckboxColumn="true"
+						selectedRows="{! v.oppSelectedRows }"
+						keyField="Id"
+					/>
+				</aura:set>
+			</aura:if>
+		</div>
+		<br />
+	</div>
+
+	<div
+		class="slds-docked-form-footer"
+		style="{!(($Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet)?'':'justify-content: flex-end;padding: 10px;')}"
+	>
+		<div class="slds-grid slds-grid_align-end">
+			<div class="slds-col">
+				<aura:if isTrue="{!v.hasAccess}">
+					<lightning:button variant="brand" label="Cancel" onclick="{! c.handleCancel }" />
+					<lightning:button
+						variant="brand"
+						label="Update Opportunity Team"
+						onclick="{! c.updateOppTeamMemeber }"
+					/>
+					<aura:set attribute="else">
+						<lightning:button variant="brand" label="Close" onclick="{! c.handleCancel }" />
+					</aura:set>
+				</aura:if>
+			</div>
+		</div>
+	</div>
+</aura:component>

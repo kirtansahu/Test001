@@ -1,0 +1,10 @@
+.THIS .success-input-data{
+    border: solid;
+    border-color: green;
+    border-width: 1px;
+}
+.THIS .error-input-data{
+    border: solid;
+    border-color: red;
+    border-width: 1px;
+}

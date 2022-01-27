@@ -1,0 +1,26 @@
+<aura:component implements="flexipage:availableForRecordHome,force:lightningQuickActionWithoutHeader,force:hasRecordId" 
+                access="global"
+                controller="ReSyncContactExternalSystemCtrl"
+                extends="c:BaseComponent">
+
+    <aura:html tag="style">
+        .cuf-content {
+        padding: 0 0rem !important;
+        }
+        .slds-p-around--medium {
+        padding: 0rem !important;
+        }       
+        .slds-modal__content{
+        overflow-y:hidden !important;
+        height:unset !important;
+        max-height:unset !important;
+        }
+    </aura:html>
+
+    <!--Attributes-->
+    <aura:attribute name="recordId" type="String" />
+    
+    <!--Handler-->
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
+
+</aura:component>

@@ -1,0 +1,134 @@
+<aura:component controller="KMCustomersOrdersCls">
+
+    <!--Attributes-->
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:attribute name="allContactHistory" type="Contact[]" />
+    <aura:attribute name="contactHistory" type="Contact[]" />
+    <aura:attribute name="contactList" type="Contact[]" />
+    <aura:attribute name="accDetail" type="Account" />
+    <aura:attribute name="contFilterBox" type="String" />
+    <aura:attribute name="sortConHisField" type="String" default="Name"/>
+    <aura:attribute name="consortCon" type="Boolean"/>
+    <aura:attribute name="sortConHisAsc" type="Boolean" default="true"/>
+    <aura:attribute name="conselectedTabsoft1" type="String" default="Name"
+        description="Use for show/hide arraow sign on header based on conditions"/>
+    <aura:attribute name="showSpinner" type="boolean" default="false"/>
+    <aura:attribute name="disableApplyButton" type="Boolean" />
+    <aura:attribute name="disableClearButton" type="Boolean" />
+    <aura:attribute name="shipToContactFilter" type="String" />
+    <aura:attribute name="disableShipToContactFilter" type="Boolean" />
+    <aura:attribute name="AccsortAsc" type="boolean"  />
+    <aura:attribute name="AccselectedTabsoft" type="string" default="Name"
+        description="Use for show/hide arraow sign on header based on conditions"/>
+
+    <!--Events-->
+    <!-- <aura:handler name="init" value="{!this}" action="{!c.doInit}"/> -->
+    <aura:registerEvent name="KMTableRowClickEvent" type="c:KMTableRowClickEvent"/>
+
+    <aura:if isTrue="{!v.allContactHistory.length > 0}">
+        <div class="slds-grid" >
+            <div class="slds-col slds-large-size_2-of-12 slds-medium-size_2-of-6">
+                <lightning:select name="contactField" aura:id="conField" value="{!v.shipToContactFilter}" onchange="{!c.enableFilter}">
+                    <option value="">{!$Label.c.KM_Filter_by}</option>
+                    <option value="Name">{!$Label.c.KM_Contact_Name}</option>
+                    <option value="Email">{!$Label.c.KM_Email}</option>
+                </lightning:select>
+            </div>
+            <div class="slds-col slds-large-size_2-of-12 slds-medium-size_2-of-6">
+                <lightning:input  value="{!v.contFilterBox}" disabled="{!v.disableShipToContactFilter}" aura:id="contFilterBoxId"/>
+            </div>
+            <div class="slds-col slds-large-size_8-of-12 slds-medium-size_2-of-6">
+                <lightning:button variant="brand" label="{!$Label.c.KM_Apply}" class="slds-m-left_x-small" onclick="{!c.applyConFilter}" disabled="{!v.disableApplyButton}" aura:id="conApplyBtn"></lightning:button>
+                <lightning:button variant="brand" label="{!$Label.c.KM_Clear}" class="slds-m-left_x-small" onclick="{!c.clearConBox}" disabled="{!v.disableClearButton}"  aura:id="conClearBtn"></lightning:button>
+            </div>
+        </div>
+    </aura:if>
+    <div class="slds-card__body slds-card__body_inner">
+        <div class="slds-table--header-fixed_container" style="height:250px;">
+            <div class="slds-scrollable_y" style="height:100%;">
+                <table class="slds-table slds-line-height_reset slds-table_bordered  slds-table_cell-buffer slds-table--header-fixed contacthistory">
+                    <colgroup>
+                        <col style="width:15%"/>
+                        <col style="width:20%"/>
+                        <col style="width:15%"/>
+                        <col style="width:20%"/>
+                        <col style="width:20%"/>
+                        <col style="width:5%"/>
+                    </colgroup>
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <th  scope="col"  >
+                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="{!$Label.c.KM_CRM_Row_Id}">{!$Label.c.KM_CRM_Row_Id}</div>
+                            </th>
+                            <th scope="col" class="slds-is-sortable" id="Name"  onclick="{!c.sortConHistory}">
+                                <div class="slds-truncate slds-cell-fixed"  title="Contact Name">
+                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                        <span class="slds-assistive-text">Sort</span>
+                                        <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Contact_Name}</span>
+                                        <aura:if isTrue="{!and(v.AccsortAsc , v.AccselectedTabsoft == 'Name')}">&nbsp;&#9660; </aura:if>
+                                        <aura:if isTrue="{!and(!v.AccsortAsc, v.AccselectedTabsoft == 'Name')}"> &nbsp;&#9650; </aura:if>
+                                    </a>
+                                </div>
+                            </th>
+                            <th class="" scope="col">
+                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Job Title">{!$Label.c.KM_Job_Title}</div>
+                            </th>
+                            <th scope="col" class="slds-is-sortable" id="Email"  onclick="{!c.sortConHistory}">
+                                <div class="slds-truncate slds-cell-fixed"  title="Email">
+                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                        <span class="slds-assistive-text">Sort</span>
+                                        <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Email}</span>
+                                        <aura:if isTrue="{!and(v.AccsortAsc , v.AccselectedTabsoft == 'Email')}">&nbsp;&#9660; </aura:if>
+                                        <aura:if isTrue="{!and(!v.AccsortAsc, v.AccselectedTabsoft == 'Email')}"> &nbsp;&#9650; </aura:if>
+                                    </a>
+                                </div>
+                            </th>
+                            <th class="" scope="col">
+                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Phone">{!$Label.c.KM_Phone_Number}</div>
+                            </th>
+                            <th class="" scope="col">
+                                <div class="slds-truncate slds-cell-fixed" title="Navigation"></div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <aura:if isTrue="{!v.contactHistory.length == 0}">
+                            <tr >
+                                <td colspan="999" data-label="Nodata" scope="col" style="text-align: center;">
+                                    {!$Label.c.KM_No_Records_found}
+                                </td>
+                            </tr>
+                        </aura:if>
+                        <aura:iteration items="{!v.contactHistory}" var="con">
+                            <tr class="slds-hint-parent" data-id="{!con.Id}" data-type="conHistoryResults" onclick="{!c.tableRowClicked}">
+                                <td data-label="ShipTo" scope="col">
+                                    <div class="slds-truncate" >{!con.Contact_External_Id__c}</div>
+                                </td>
+                                <td data-label="ST Alpha Name" scope="col">
+                                    <div class="slds-truncate" >{!con.Name}</div>
+                                </td>
+                                <td data-label="ST Address" scope="col">
+                                    <div class="slds-truncate" >{!con.Title}</div>
+                                </td>
+                                <td data-label="BillTo" scope="col">
+                                    <div class="slds-truncate" >{!con.Email}</div>
+                                </td>
+                                <td data-label="BT Name" scope="col">
+                                    <div class="slds-truncate" >{!con.Phone}</div>
+                                </td>
+                                <td data-label="Contact">
+                                    <div class="slds-truncate" >
+                                        <a onclick="{!c.tableRowClicked}" data-type="conHistoryResults" data-id="{!con.Id}">
+                                            <lightning:buttonIcon iconName="utility:chevronright"  variant="border-filled" alternativeText="Go to Account" title="Account Details" />
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </aura:iteration>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</aura:component>

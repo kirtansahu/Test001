@@ -1,0 +1,74 @@
+<aura:component implements="force:lightningQuickActionWithoutHeader,force:hasRecordId"
+                controller="OpportunityTeamMemberRemoveCompCtrl"
+                extends="c:BaseComponent"
+                access="global">
+	
+    <!--attribute-->
+    <aura:attribute name="oOpportunityTeamMember" type="OpportunityTeamMember"/>
+    
+    <!--handler-->
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
+    
+    <!--Styles-->
+    <!--DO NOT MOVE THIS STYLE TO STYLE.CSS FILE, WE NEED IT HERE ONLY SO IT CAN BE APPLIED TO MODEL-->
+     <aura:html tag="style">
+        .cuf-content {
+            padding: 0 0rem !important;
+        }
+        .slds-p-around--medium {
+            padding: 0rem !important;
+        }       
+        .slds-modal__content{
+            overflow-y:hidden !important;
+            height:unset !important;
+            max-height:unset !important;
+        }
+    </aura:html>
+    
+    <!--markup-->
+    <div class="modal-header slds-modal__header slds-size_1-of-1">
+        <h4 class="title slds-text-heading--medium">{!$Label.c.OTM_RemoveOppTeamHeader}</h4>
+    </div>
+      
+    <div class="slds-modal__content slds-p-around--x-small slds-size_1-of-1 slds-is-relative">
+        <form class="slds-form--stacked">
+            <aura:if isTrue="{!v.oOpportunityTeamMember != null &amp;&amp; v.oOpportunityTeamMember != undefined}">
+            
+                <aura:if isTrue="{!v.oOpportunityTeamMember.isPrimary__c}">
+                	 
+                    <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error" role="alert">
+                        <span class="slds-assistive-text">error</span>
+                        <lightning:icon iconName="utility:error" size="small" variant="inverse"/>
+                        <h2>&nbsp; {!$Label.c.OTM_CANT_Remove_Primary_Team_Member}</h2>
+                    </div>
+                    
+                    <aura:set attribute="else">
+                    	<div class="slds-align_absolute-center">
+                        	<b>{!$Label.c.OTM_Confirm_Team_Member}</b>
+                        </div>
+                    </aura:set>
+                </aura:if>
+                
+                <aura:set attribute="else">
+                    <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error" role="alert">
+                        <span class="slds-assistive-text">error</span>
+                        <lightning:icon iconName="utility:error" size="small" variant="inverse"/>
+                        <h2>&nbsp; {!$Label.c.OTM_NO_Team_Member_Found}</h2>
+                    </div>
+                </aura:set>
+            </aura:if>
+        </form> 
+    </div>
+     
+    <div class="modal-footer slds-modal__footer slds-size_1-of-1">
+        <aura:if isTrue="{!v.oOpportunityTeamMember != null &amp;&amp; v.oOpportunityTeamMember != undefined &amp;&amp; !v.oOpportunityTeamMember.isPrimary__c}">
+			<button class="slds-button slds-button_brand" type="button" onclick="{!c.handledeleteOppTeamMember}">Yes</button>
+            <button class="slds-button slds-button_neutral" type="button" onclick="{!c.closeQuickAction}">No</button>
+            
+            <aura:set attribute="else">
+                <button class="slds-button slds-button_neutral" type="button" onclick="{!c.closeQuickAction}">Close</button>
+            </aura:set>
+		</aura:if>
+    </div>
+    
+</aura:component>

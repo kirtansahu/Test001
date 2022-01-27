@@ -1,0 +1,282 @@
+<aura:component implements="flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,force:lightningQuickActionWithoutHeader" 
+                access="global" 
+                controller="CloneOpportunityController"
+                extends="c:BaseComponent">
+    <lightning:notificationsLibrary aura:id="notifLib"/>
+    
+    <aura:attribute name="isSFApp" type="Boolean" default="{!$Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet}"/>
+    <aura:attribute name="title" type="String" default="Clone Opportunity"/>
+    <aura:attribute name="saved" type="Boolean" default="false" />
+    <aura:attribute name="showSpinner" type="Boolean" default="true" />
+    <aura:attribute name="products" type="Object"/>
+    <aura:attribute name="columns" type="List"/> 
+    <aura:attribute name="clonedOppRecordId" type="Id"/>
+    <aura:attribute name="savedDraftValues" type="Object"/>
+    <aura:attribute name="savedProdLineDraftValues" type="Object"/>
+    <aura:attribute name="isDataChanged" type="Boolean" default="false" />
+    <aura:attribute name="errors" type="Object"/>
+    
+    <aura:attribute name="sortedBy" type="String" />
+    <aura:attribute name="sortedDirection" type="Boolean" default="true" />
+    <aura:attribute name="sortedProdLineBy" type="String" />
+    <aura:attribute name="sortedProdLineDirection" type="Boolean" default="true" />
+    <aura:attribute name="allFields" type="List" />
+    <aura:attribute name="productLine" type="Object"/>
+    <aura:attribute name="productLineColumns" type="List"/>
+    <aura:attribute name="prodLineErrors" type="Object"/>
+    <aura:attribute name="showOppItem" type="Boolean" default="false"/>
+    <aura:attribute name="showOppProductLineItem" type="Boolean" default="false"/>
+
+    <aura:attribute name="showOppTeamMember" type="Boolean" default="false"/>
+    <aura:attribute name="oppTeamMembers" type="Object"/>
+    <aura:attribute name="oppTeamMemberColumns" type="List"/>
+    <aura:attribute name="oppTeamMemberErrors" type="Object"/>
+    <aura:attribute name="sortedOppTeamMemberBy" type="String" />
+    <aura:attribute name="sortedOppTeamMemberDirection" type="Boolean" default="true" />
+    
+    <aura:attribute name="isOppCloned" type="Boolean" default="false" />
+    <aura:attribute name="isAccountUpdated" type="Boolean" default="false" />
+    <aura:attribute name="hasOpportunityProduct" type="Boolean" default="false" />
+    <aura:attribute name="hasOpporunityProductLine" type="Boolean" default="false" />
+    <aura:attribute name="hasOpportunityTeamMember" type="Boolean" default="false" />
+    <aura:attribute name="layoutSections" type="List"/>
+    <aura:attribute name="opp" type="Opportunity"/>
+    
+    
+    
+    <aura:handler name="init" action="{!c.init}" value="{!this}"/>
+    <aura:if isTrue="{!!v.isSFApp}">
+        <aura:html tag="style">
+            .slds-modal__container{
+            height : 540px;
+            width: 70vw;
+            max-width: 70vw;
+            }
+            
+            .modal-body{
+                height: 85vh !important;
+                max-height: 85vh !important;
+                padding: 0;
+            }
+            
+            .customFooter{
+            display: inline !important;
+            z-index: 0; !important;
+            }
+        </aura:html>
+        <aura:set attribute="else">
+            <aura:html tag="style">
+                .slds-modal__container {
+                height : auto;
+                width: 90vw;
+                max-width: 90vw;
+                }
+            </aura:html>
+        </aura:set>
+    </aura:if>
+    
+    <div class="slds-modal__header custom-modal-header">
+        <h4 class="title slds-text-heading--medium" >
+            <aura:if isTrue="{!!v.saved}">
+                <div class="custom-header">{!v.title}</div>
+                <aura:set attribute="else">
+                    <aura:if isTrue="{!v.showOppTeamMember}">
+                        	Edit All Opportunity Team Members
+                    </aura:if>
+                    <aura:if isTrue="{!v.showOppItem}">
+                        Edit All Products
+                    </aura:if>
+                   	<aura:if isTrue="{!v.showOppProductLineItem}">
+                            Edit All Product Lines
+                    </aura:if>
+                </aura:set>
+            </aura:if>
+        </h4>
+    </div>
+    
+    <div class="custom-modal-container">
+        <lightning:spinner aura:id="spinner" variant="brand" class="slds-hide"/>
+        <div id="error" style="color:red" class="slds-col slds-size_1-of-2  slds-p-left_x-small"></div>
+        <aura:if isTrue="{!v.isOppCloned}">
+            <aura:if isTrue="{!!v.saved}">
+                <lightning:recordEditForm aura:id="OppForm"
+                                          class="OppForm"
+                                          density="comfy"
+                                          objectApiName="Opportunity"
+                                          onload="{!c.handleOnload}"
+                                          onsubmit="{!c.cloneOpportunity}" >
+                    <div class="{!'slds-modal__content slds-p-around_large slds-border_left slds-border_right custom-form-'+v.isSFApp}" id="modal-content-id-1"> 
+                        <div class="slds-grid slds-wrap">
+                            <aura:iteration items="{!v.layoutSections}" var="layoutSection">
+                                <div class="slds-section slds-is-open" style="width:100%;">
+                                    <h3 class="slds-section__title slds-theme_shade">
+                                        <span class="slds-truncate slds-p-horizontal_small" title="{!layoutSection.name}">{!layoutSection.name}</span>
+                                    </h3>
+                                    <div aria-hidden="false" class="{!'slds-section__content '+(v.isSFApp ? 'device-iPad-or-tablet' : 'device-desktop')}">
+                                        <lightning:layout multipleRows="{!layoutSection.columns > 1 }">
+                                            <aura:iteration items="{!layoutSection.layoutFields}" var="layoutField">
+                                                <lightning:layoutItem size="{! v.isSFApp ?12:12/layoutSection.columns }" flexibility="auto" padding="around-small" class="custom-field-container">
+                                                    <aura:if isTrue="{!layoutField.editableField}">
+                                                        <aura:if isTrue="{!(layoutField.ApiName == 'AccountId' 
+                                                                         || layoutField.ApiName == 'Primary_Contact__c' 
+                                                                         || layoutField.ApiName == 'Pricebook2Id' 
+                                                                         || layoutField.ApiName == 'CampaignId' 
+                                                                         || layoutField.ApiName == 'End_Customer_Account__c' 
+                                                                         || layoutField.ApiName == 'End_Customer_Contact__c'
+                                                                         || layoutField.ApiName == 'Converted_Lead__c') &amp;&amp; v.isSFApp}">
+                                                            <aura:if isTrue="{!layoutField.ApiName == 'AccountId'}">
+                                                                <c:CustomLookupComp objectName="Account" 
+                                                                                    fieldName="Name" 
+                                                                                    label="{!layoutField.label}" 
+                                                                                    iconName="standard:account" 
+                                                                                    placeholder="Search Accounts"
+                                                                                    value="{!v.opp.AccountId}"/>
+                                                            </aura:if>
+                                                            <aura:if isTrue="{!layoutField.ApiName == 'Primary_Contact__c'}">
+                                                                <c:CustomLookupComp objectName="Contact" 
+                                                                                    fieldName="Name" 
+                                                                                    label="{!layoutField.label}" 
+                                                                                    iconName="standard:contact" 
+                                                                                    placeholder="Search Contacts"
+                                                                                    value="{!v.opp.Primary_Contact__c}"
+                                                                                    isRequired="true"/>
+                                                            </aura:if>
+                                                            <aura:if isTrue="{!layoutField.ApiName == 'Pricebook2Id'}">
+                                                                <c:CustomLookupComp objectName="Pricebook2" 
+                                                                                    fieldName="Name" 
+                                                                                    label="{!layoutField.label}" 
+                                                                                    iconName="standard:pricebook" 
+                                                                                    placeholder="Search Price Books"
+                                                                                    value="{!v.opp.Pricebook2Id}"/>
+                                                            </aura:if>
+                                                            
+                                                            <aura:if isTrue="{!layoutField.ApiName == 'CampaignId'}">
+                                                                <c:CustomLookupComp objectName="Campaign" 
+                                                                                    fieldName="Name" 
+                                                                                    label="{!layoutField.label}" 
+                                                                                    iconName="standard:campaign" 
+                                                                                    placeholder="Search Campaigns"
+                                                                                    value="{!v.opp.CampaignId}"/>
+                                                            </aura:if>
+                                                            
+                                                            <aura:if isTrue="{!layoutField.ApiName == 'End_Customer_Contact__c'}">
+                                                                <c:CustomLookupComp objectName="Contact" 
+                                                                                    fieldName="Name" 
+                                                                                    label="{!layoutField.label}" 
+                                                                                    iconName="standard:contact" 
+                                                                                    placeholder="Search Contacts"
+                                                                                    value="{!v.opp.End_Customer_Contact__c}"/>
+                                                            </aura:if>
+                                                            
+                                                            <aura:if isTrue="{!layoutField.ApiName == 'End_Customer_Account__c'}">
+                                                                <c:CustomLookupComp objectName="Account" 
+                                                                                    fieldName="Name" 
+                                                                                    label="{!layoutField.label}" 
+                                                                                    iconName="standard:account" 
+                                                                                    placeholder="Search Accounts"
+                                                                                    value="{!v.opp.End_Customer_Account__c}"/>
+                                                            </aura:if>
+                                                            
+                                                            <aura:if isTrue="{!layoutField.ApiName == 'Converted_Lead__c'}">
+                                                                <c:CustomLookupComp objectName="Lead" 
+                                                                                    fieldName="Name" 
+                                                                                    label="{!layoutField.label}" 
+                                                                                    iconName="standard:lead" 
+                                                                                    placeholder="Converted Lead"
+                                                                                    value="{!v.opp.Converted_Lead__c}"
+                                                                                    isDisabled="{!!layoutField.editableField}"/>
+                                                            </aura:if>
+                                                            
+                                                            <aura:set attribute="else">
+                                                                <lightning:inputField aura:id="fieldId" fieldName="{!layoutField.ApiName}" />
+                                                            </aura:set>
+                                                        </aura:if>
+                                                        	
+                                                        <aura:set attribute="else">
+                                                            <lightning:inputField aura:id="fieldId" fieldName="{!layoutField.ApiName}" disabled="true"/>
+                                                        </aura:set>
+                                                    </aura:if>
+                                                </lightning:layoutItem>
+                                            </aura:iteration>
+                                        </lightning:layout>
+                                    </div>
+                                </div>
+                            </aura:iteration>
+                        </div>
+                    </div>
+                    <footer class="slds-modal__footer" style="text-align:right; background: #fff; border-radius: 0;"> 
+                        <lightning:button variant="brand" label="{!(v.hasOpportunityProduct || v.hasOpporunityProductLine || v.hasOpportunityTeamMember)?'Save &amp; Next':'Submit'}" type="submit"  />
+                        <lightning:button variant="neutral" label="Cancel" type="cancel" onclick="{!c.handleCancel}" />
+                    </footer>
+                </lightning:recordEditForm>
+                <aura:set attribute="else">
+                    <aura:if isTrue="{!v.showOppItem}">
+                        <div class="table-container slds-table--header-fixed_container" style="height:75vh;">
+                            <lightning:datatable
+                                                 aura:id = "oppLineItem"
+                                                 keyField="Id"
+                                                 data="{! v.products }"
+                                                 columns="{! v.columns }"
+                                                 sortedBy="{!v.sortedBy}"
+                                                 sortedDirection="{!v.sortedDirection}" 
+                                                 onsort="{!c.handleColumnSorting}" 
+                                                 oncellchange="{!c.validateFieldsAndhideCustomDockFooter}"
+                                                 onsave="{!c.handleCloneLineItems}"                
+                                                 oncancel="{!c.navigateToOpp}" 
+                                                 onrowaction="{!c.handleRowAction}"
+                                                 errors="{!v.errors}"                
+                                                 hideCheckboxColumn="true"
+                                                 showRowNumberColumn="true"/>
+                        </div>
+                    </aura:if>
+                    <aura:if isTrue="{!v.showOppProductLineItem}">
+                        <div class="table-container slds-table--header-fixed_container" style="height:75vh;">
+                            <lightning:datatable
+                                                 aura:id="oppProdLineItem"
+                                                 keyField="Id"
+                                                 data="{! v.productLine }"
+                                                 columns="{! v.productLineColumns }"
+                                                 sortedBy="{!v.sortedProdLineBy}"
+                                                 sortedDirection="{!v.sortedProdLineDirection}" 
+                                                 onsort="{!c.handleProdLineColumnSorting}"
+                                                 oncellchange="{!c.validateFieldsAndhideCustomDockFooter}"
+                                                 onsave="{!c.handleCloneLineItems}"                
+                                                 oncancel="{!c.navigateToOpp}" 
+                                                 onrowaction="{!c.handleProdLineRowAction}"
+                                                 errors="{!v.prodLineErrors}"
+                                                 hideCheckboxColumn="true"
+                                                 showRowNumberColumn="true"/>
+                        </div>
+                    </aura:if>
+                    <aura:if isTrue="{!v.showOppTeamMember}">
+                        <div class="table-container slds-table--header-fixed_container" style="height:75vh;">
+                            <lightning:datatable aura:id="oppTeamMember"
+                                                 keyField="Id"
+                                                 data="{! v.oppTeamMembers }"
+                                                 columns="{! v.oppTeamMemberColumns }"
+                                                 sortedBy="{!v.sortedOppTeamMemberBy}"
+                                                 sortedDirection="{!v.sortedOppTeamMemberDirection}" 
+                                                 onsort="{!c.handleOppTeamMemberColumnSorting}"
+                                                 oncellchange="{!c.validateFieldsAndhideCustomDockFooter}"
+                                                 onsave="{!c.handleCloneOppTeamMembers}"                
+                                                 oncancel="{!c.navigateToOpp}" 
+                                                 onrowaction="{!c.handleOppTeamMemberRowAction}"
+                                                 errors="{!v.oppTeamMemberErrors}"
+                                                 hideCheckboxColumn="true"
+                                                 showRowNumberColumn="true"/>
+                        </div>
+                    </aura:if>
+                    
+                    <aura:if isTrue="{!!(v.isDataChanged)}">
+                        <div class="slds-docked-form-footer custom-docked-footer">
+                            <div class="slds-grid slds-grid_align-center">
+                                <button type="button" class="slds-button slds-button_neutral" onclick="{!c.navigateToOpp}">Cancel</button>
+                                <button type="button" class="slds-button slds-button_brand save-btn" name="{!v.hasOpportunityProduct+'_'+v.hasOpporunityProductLine+'_'+v.hasOpportunityTeamMember}" onclick="{!c.handleCloneLineItems}">{!((v.hasOpportunityProduct &amp;&amp; (v.hasOpporunityProductLine || v.hasOpportunityTeamMember)) || (v.hasOpporunityProductLine &amp;&amp; v.isAccountUpdated &amp;&amp; v.hasOpportunityTeamMember) )?'Save &amp; Next':'Save'}</button>
+                            </div>
+                        </div>
+                    </aura:if>
+                </aura:set>
+            </aura:if>
+        </aura:if>
+    </div>
+</aura:component>

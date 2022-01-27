@@ -1,0 +1,17 @@
+<apex:page standardController="Opportunity">
+    <apex:includeLightning /> 
+    
+    <div id="lightningservicepg" /> 
+    <apex:includeScript value="/lightning/lightning.out.js" />
+    <script>
+    var recordId = "{!$CurrentPage.Parameters.id}"; 
+    $Lightning.use("c:NewOppApp", function() {
+        $Lightning.createComponent("c:ViewAccountTeamOnOpportunity",
+                                   {"recordId": recordId}, 
+                                   "lightningservicepg",
+                                   function(cmp) {}
+                                  ); 
+    });
+    
+    </script>
+</apex:page>

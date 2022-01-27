@@ -1,0 +1,151 @@
+<aura:component implements="flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,force:lightningQuickActionWithoutHeader,lightning:actionOverride" 
+                access="global" 
+                controller="NewLeadCtr"
+                extends="c:BaseComponent">
+    <lightning:overlayLibrary aura:id="overlayLib"/>
+    <lightning:workspaceAPI aura:id="workspace"/>
+    <aura:attribute name="layoutSections" type="List"/>
+    <aura:attribute name="requiredFields" type="Object"/>
+    <aura:attribute name="leadOb" type="Lead" default="{'sobjectType':'Lead'}"/>
+    <aura:attribute name="showLeadForm" type="Boolean" default="false"/>
+    <aura:attribute name="isTestingAsPhone" type="Boolean" default="false"/>
+    
+    <aura:attribute name="isSFApp" type="Boolean" default="{!$Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet}"/>
+    <aura:attribute name="isSFApp_newLead" type="Boolean" default="false"/>
+    <aura:attribute name="isModel" type="Boolean" default="false"/>
+    <aura:attribute name="isInConsole" type="Boolean" default="false"/>
+    
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
+    <aura:if isTrue="{!!v.isSFApp_newLead}">
+        <aura:html tag="style">
+            .slds-modal__container, .is-in-console-true {
+            height : auto;
+            width: 75vw;
+            max-width: 75vw;
+            }
+            
+            .is-in-console-true {
+            margin-left: 10vw !important;
+            }
+            
+            .modal-body{
+            height: 88vh !important;
+            max-height: 88vh !important;
+            padding: 0;
+            }
+            
+            .customFooter{
+            display: inline !important;
+            z-index: 0; !important;
+            }
+        </aura:html>
+        <aura:set attribute="else">
+            <aura:html tag="style">
+                .slds-modal__container {
+                height : auto;
+                width: 90vw;
+                max-width: 90vw;
+                }
+            </aura:html>
+        </aura:set>
+    </aura:if>
+    
+    <div class="{!'slds-modal__header custom-modal-header is-in-console-'+v.isInConsole}">
+        <h4 class="title slds-text-heading--medium" >New Lead</h4>
+    </div>
+    
+    <div class="{!'custom-modal-container is-in-console-'+v.isInConsole}">
+        <lightning:spinner aura:id="spinner" variant="brand" class="slds-hide"/>
+        <div id="error" style="color:red" class="slds-col slds-size_1-of-2  slds-p-left_x-small"></div>
+        
+        <aura:if isTrue="{!v.showLeadForm}">
+            <lightning:recordEditForm aura:id="sObjectForm"
+                                      class="sObjectForm"
+                                      objectApiName="Lead"
+                                      density="comfy"
+                                      recordTypeId="{!v.leadOb.RecordTypeId}"
+                                      onload="{!c.handleOnload}" 
+                                      onsubmit="{!c.createLead}">
+                <!-- onsuccess="{!c.handleSuccess}" onerror="{!c.handleError}" -->
+                <div class="{!'slds-modal__content slds-p-horizontal_small '+(v.isSFApp_newLead ? '__' : '')+'custom-form-'+v.isSFApp+'-'+v.isInConsole}" id="modal-content-id-1"> 
+                    <div class="slds-grid slds-wrap">
+                        <aura:iteration items="{!v.layoutSections}" var="layoutSection">
+                            <aura:if isTrue="{!layoutSection.name != 'System Information'}">
+                                <div class="slds-section slds-is-open" style="width:100%;">
+                                    <h3 class="slds-section__title slds-theme_shade">
+                                        <span class="slds-truncate slds-p-horizontal_small" title="{!layoutSection.name}">{!layoutSection.name}</span>
+                                    </h3>
+                                    <div aria-hidden="false" class="{!'slds-section__content '+((v.isSFApp &amp;&amp; !v.isSFApp_newLead) ? 'device-iPad-or-tablet' : 'device-desktop')}">
+                                        <lightning:layout multipleRows="{!layoutSection.columns > 1 }">
+                                            <aura:iteration items="{!layoutSection.layoutFields}" var="layoutField">
+                                                <aura:if isTrue="{!layoutField.ApiName != 'Company' &amp;&amp; layoutField.ApiName != 'FirstName' &amp;&amp; layoutField.ApiName != 'LastName'}">
+                                                    <lightning:layoutItem size="{! v.isSFApp ? 12: 12/layoutSection.columns }" flexibility="auto" class="custom-field-container">
+                                                        <aura:if isTrue="{!(layoutField.ApiName == 'Account__c' || layoutField.ApiName == 'Contact__c' || layoutField.ApiName == 'Primary_Campaign__c' || layoutField.ApiName == 'RecordTypeId') &amp;&amp; (v.isSFApp)}">
+                                                            <aura:if isTrue="{!layoutField.ApiName == 'Account__c'}">
+                                                                <c:CustomLookupComp objectName="Account" 
+                                                                                    fieldName="Name" 
+                                                                                    label="{!layoutField.label}" 
+                                                                                    iconName="standard:account" 
+                                                                                    placeholder="Search Accounts"
+                                                                                    isRequired="{!layoutField.required}"
+                                                                                    value="{!v.leadOb.Account__c}"
+                                                                                    isDisabled="{!!layoutField.editableField}"
+                                                                                    criteria="(Account_Status__c='Active' AND RecordType.Name IN ('Site SGN', 'Prospect'))"
+                                                                                    subLabelFieldsAPIName="['RecordType.Name','ERP_Account_Id__c']"/>
+                                                            </aura:if>
+                                                            <aura:if isTrue="{!layoutField.ApiName == 'Contact__c'}">
+                                                                <c:CustomLookupComp objectName="Contact" 
+                                                                                    fieldName="Name" 
+                                                                                    label="{!layoutField.label}" 
+                                                                                    iconName="standard:contact" 
+                                                                                    placeholder="Search Contacts"
+                                                                                    isRequired="{!layoutField.required}"
+                                                                                    value="{!v.leadOb.Contact__c}"
+                                                                                    isDisabled="{!!layoutField.editableField}"
+                                                                                    criteria="(Active_Status_Flag__c='Active')"
+                                                                                    subLabelFieldsAPIName="['Account.Name']"/>
+                                                                <!--criteria="{!'(Active_Status_Flag__c=\'Active\' AND AccountId = \''+v.leadOb.Account__c+'\')'}"-->
+                                                            </aura:if>
+                                                            <aura:if isTrue="{!layoutField.ApiName == 'Primary_Campaign__c'}">
+                                                                <c:CustomLookupComp objectName="Campaign" 
+                                                                                    fieldName="Name" 
+                                                                                    label="{!layoutField.label}" 
+                                                                                    iconName="standard:campaign" 
+                                                                                    placeholder="Search Campaign"
+                                                                                    isRequired="{!layoutField.required}"
+                                                                                    value="{!v.leadOb.Primary_Campaign__c}"
+                                                                                    isDisabled="{!!layoutField.editableField}"/>
+                                                            </aura:if>
+                                                            <aura:if isTrue="{!layoutField.ApiName == 'RecordTypeId'}">
+                                                                <c:CustomLookupComp objectName="RecordType" 
+                                                                                    fieldName="Name" 
+                                                                                    label="{!layoutField.label}" 
+                                                                                    iconName="standard:default" 
+                                                                                    placeholder="Search Record Type"
+                                                                                    isRequired="{!layoutField.required}"
+                                                                                    value="{!v.leadOb.RecordTypeId}"
+                                                                                    isDisabled="{!!layoutField.editableField}"/>
+                                                            </aura:if>
+                                                            
+                                                            <aura:set attribute="else">
+                                                                <lightning:inputField aura:id="fieldId" fieldName="{!layoutField.ApiName}" disabled="{!!layoutField.editableField}"/>
+                                                            </aura:set>
+                                                        </aura:if>
+                                                    </lightning:layoutItem>
+                                                </aura:if>
+                                            </aura:iteration>
+                                        </lightning:layout>
+                                    </div>
+                                </div>
+                            </aura:if>
+                        </aura:iteration>
+                    </div>
+                </div>
+                <footer class="slds-modal__footer" style="text-align:right; background: #fff; border-radius: 0;"> 
+                    <lightning:button variant="neutral" label="Cancel" type="button" onclick="{!c.handleCancel}"/>
+                    <lightning:button variant="brand" label="Save" type="submit"/>
+                </footer>
+            </lightning:recordEditForm>
+        </aura:if>
+    </div>
+</aura:component>

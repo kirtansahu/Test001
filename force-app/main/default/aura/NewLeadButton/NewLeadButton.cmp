@@ -1,0 +1,17 @@
+<aura:component implements="lightning:actionOverride,flexipage:availableForAllPageTypes" access="global" extends="c:BaseComponent">
+    <lightning:overlayLibrary aura:id="overlayLib"/>
+    <lightning:workspaceAPI aura:id="workspace"/>
+    
+    <aura:attribute name="isSFApp" type="Boolean" default="{!($Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet)}"/>
+    <aura:attribute name="isInConsole" type="Boolean" default="false"/>
+    <aura:attribute name="isInitDone" type="Boolean" default="false"/>
+    
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
+    <aura:handler name="render" value="{!this}" action="{!c.onRender}"/>
+    
+    <aura:if isTrue="{!v.isInitDone}">
+        <aura:if isTrue="{!!v.isSFApp &amp;&amp; v.isInConsole}">
+            <c:NewLead isInConsole="{!v.isInConsole}" isSFApp_newLead="false"/>
+        </aura:if>
+    </aura:if>
+</aura:component>

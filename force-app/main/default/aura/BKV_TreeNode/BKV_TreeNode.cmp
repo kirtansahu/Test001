@@ -1,0 +1,25 @@
+<aura:component extends="c:BaseComponent" implements="lightning:hasPageReference,lightning:isUrlAddressable,force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" controller="BKV_TreeViewCtr">
+    <aura:attribute name="baseNode" type="List"/>
+    <aura:attribute name="spacing" type="String" default=""/>
+    
+    <div>
+        <aura:iteration items="{!v.baseNode}" var="th">
+            {!v.spacing}
+            <aura:if isTrue="{!th.isExpanded}">
+                <lightning:buttonIcon iconName="utility:dash" size="small" variant="bare" onclick="{!c.handleColapse}" alternativeText="Colapse" title="{!th.value}"/>
+                <aura:set attribute="else">
+                    <lightning:buttonIcon iconName="utility:add" size="small" variant="bare" onclick="{!c.handleExpand}" alternativeText="Expand" title="{!th.value}"/>
+                </aura:set>
+            </aura:if>
+            &nbsp;<a target="_blank" href="{!'\\'+th.value}">{!th.label}</a>&nbsp;&nbsp;
+            <lightning:buttonIcon iconName="utility:delete" size="small" variant="bare" onclick="{!c.handleDelete}" alternativeText="Delete" title="{!th.value}"/>
+            <br/>
+            
+            <div class="{!th.value+' slds-show-'+th.isExpanded}">
+                <aura:if isTrue="{!th.childNodes.length &gt; 0 }">
+                    <c:BKV_TreeNode baseNode="{!th.childNodes}" spacing="{!'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+v.spacing}"/>
+                </aura:if>
+            </div>
+        </aura:iteration>
+    </div>
+</aura:component>

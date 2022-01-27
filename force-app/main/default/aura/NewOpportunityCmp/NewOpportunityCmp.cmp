@@ -1,0 +1,21 @@
+<aura:component Controller="NewOpportunityCls" 
+                implements="force:lightningQuickAction,force:hasRecordId,force:appHostable,lightning:actionOverride,flexipage:availableForAllPageTypes" 
+                access="global"
+                extends="c:BaseComponent">
+    <!--attribute-->
+    <aura:attribute name="record" type="Object"/>
+    <aura:attribute name="isVF" type="Boolean" default="false"/>
+    
+    <!--handler-->
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    
+    <!--markup-->
+    <!--<header class="slds-modal__header">
+        <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">New Opportunity</h2>    
+    </header>
+    <br/>
+    <br/>
+    <div style="text-align: right;">
+        <lightning:button variant="brand" label="Back" onclick="{!c.back}" />
+    </div>-->
+</aura:component>

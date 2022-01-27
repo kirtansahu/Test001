@@ -1,0 +1,132 @@
+<aura:component>
+    
+    <aura:attribute name="accountRecord" type="Account" />
+    <aura:attribute name="invoiceType" type="String"/>
+    <aura:if isTrue="{!v.invoiceType=='RL'}">
+        <div class="slds-col slds-size_1-of-2 slds-m-top_x-small">
+            <div class="slds-form__item" style="margin-bottom:-10px">
+                <div class="slds-form-element slds-form-element_horizontal ">
+                    <label class="slds-form-element__label ">
+                        <b>{!$Label.c.KM_Bill_To}:</b>
+                    </label>
+                    <div class="slds-p-top_xxx-small">
+                        {!v.accountRecord.Primary_Bill_To__r.ERP_Account_Id__c}
+                    </div>
+                </div>
+            </div>
+            <div class="slds-form__item" style="margin-bottom:-10px">
+                <div class="slds-form-element slds-form-element_horizontal ">
+                    <label class="slds-form-element__label " >
+                        <b>{!$Label.c.KM_BT_Name}:</b>
+                    </label>
+                    <div class="slds-p-top_xxx-small">
+                        {!v.accountRecord.Primary_Bill_To__r.Name}
+                    </div>
+                </div>
+            </div>
+            <div class="slds-form__item">
+                <div class="slds-form-element slds-form-element_horizontal ">
+                    <label class="slds-form-element__label " style="height:40px">
+                        <b>{!$Label.c.KM_BT_Address}:</b>
+                    </label>
+                    <div class="slds-p-top_xxx-small">
+                        {!v.accountRecord.Primary_Bill_To__r.Address_1__c}&nbsp;
+                        {!v.accountRecord.Primary_Bill_To__r.State_f__c}&nbsp;
+                        {!v.accountRecord.Primary_Bill_To__r.City_f__c}<br/>
+                        {!v.accountRecord.Primary_Bill_To__r.Address_3__c}&nbsp;
+                        {!v.accountRecord.Primary_Bill_To__r.Address_2__c}<br/>
+                        {!v.accountRecord.Primary_Bill_To__r.Zip_Postal_Code_f__c}&nbsp;
+                        {!v.accountRecord.Primary_Bill_To__r.Country__c}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <aura:set attribute="else">
+            <div class="slds-grid slds-wrap">
+                <div class="slds-col slds-size_1-of-2 slds-m-top_x-small">
+                    <div class="slds-form__item" style="margin-bottom:-10px">
+                        <div class="slds-form-element slds-form-element_horizontal ">
+                            <label class="slds-form-element__label " >
+                                <b>{!$Label.c.KM_ShipTo}:</b>
+                            </label>
+                            <div class="slds-p-top_xxx-small">
+                                {!v.accountRecord.ERP_Account_Id__c}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-form__item " style="margin-bottom:-10px">
+                        <div class="slds-form-element slds-form-element_horizontal ">
+                            <label class="slds-form-element__label " >
+                                <b>{!$Label.c.KM_ST_Alpha_Name}:</b>
+                            </label>
+                            <div class="slds-p-top_xxx-small">
+                                {!v.accountRecord.Account_Alpha_Name__c}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-form__item" style="margin-bottom:-10px">
+                        <div class="slds-form-element slds-form-element_horizontal ">
+                            <label class="slds-form-element__label " ><b>{!$Label.c.KM_ST_Name}:</b></label>
+                            <div class="slds-p-top_xxx-small">
+                                {!v.accountRecord.Name}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-form__item" >
+                        <div class="slds-form-element slds-form-element_horizontal ">
+                            <label class="slds-form-element__label " style="height:40px">
+                                <b>{!$Label.c.KM_ST_Address}:</b>
+                            </label>
+                            <div class="slds-p-top_xxx-small">
+                                {!v.accountRecord.Address_1__c}&nbsp;{!v.accountRecord.State_f__c}
+                                &nbsp;{!v.accountRecord.City_f__c}<br/>{!v.accountRecord.Address_3__c}&nbsp;
+                                {!v.accountRecord.Address_2__c}<br/>{!v.accountRecord.Zip_Postal_Code_f__c}
+                                &nbsp;{!v.accountRecord.Country__c}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-m-top_x-small">
+                    <div class="slds-form__item" style="margin-bottom:-10px">
+                        <div class="slds-form-element slds-form-element_horizontal ">
+                            <label class="slds-form-element__label ">
+                                <b>{!$Label.c.KM_Bill_To}:</b>
+                            </label>
+                            <div class="slds-p-top_xxx-small">
+                                {!v.accountRecord.Primary_Bill_To__r.ERP_Account_Id__c}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-form__item" style="margin-bottom:-10px">
+                        <div class="slds-form-element slds-form-element_horizontal ">
+                            <label class="slds-form-element__label " >
+                                <b>{!$Label.c.KM_BT_Name}:</b>
+                            </label>
+                            <div class="slds-p-top_xxx-small">
+                                {!v.accountRecord.Primary_Bill_To__r.Name}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-form__item">
+                        <div class="slds-form-element slds-form-element_horizontal ">
+                            <label class="slds-form-element__label " style="height:40px">
+                                <b>{!$Label.c.KM_BT_Address}:</b>
+                            </label>
+                            <div class="slds-p-top_xxx-small">
+                                {!v.accountRecord.Primary_Bill_To__r.Address_1__c}&nbsp;
+                                {!v.accountRecord.Primary_Bill_To__r.State_f__c}&nbsp;
+                                {!v.accountRecord.Primary_Bill_To__r.City_f__c}<br/>
+                                {!v.accountRecord.Primary_Bill_To__r.Address_3__c}&nbsp;
+                                {!v.accountRecord.Primary_Bill_To__r.Address_2__c}<br/>
+                                {!v.accountRecord.Primary_Bill_To__r.Zip_Postal_Code_f__c}&nbsp;
+                                {!v.accountRecord.Primary_Bill_To__r.Country__c}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aura:set>
+    </aura:if>
+    
+    
+</aura:component>

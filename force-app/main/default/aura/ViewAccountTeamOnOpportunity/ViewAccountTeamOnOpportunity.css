@@ -1,0 +1,11 @@
+.THIS h4 {
+	font-weight: bold;
+	font-size: 1rem;
+	line-height: 1.25;
+}
+.THIS .custom-form-false {
+	max-height: 382px;
+}
+.THIS .custom-form-true {
+	max-height: 80vh;
+}

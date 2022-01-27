@@ -1,0 +1,9 @@
+<aura:component Controller="OpportunityController" implements="flexipage:availableForRecordHome,force:appHostable,force:lightningQuickActionWithoutHeader,force:hasRecordId" extends="c:BaseComponent">
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    
+    <aura:attribute name="record" type="Object"/>
+    <aura:attribute name="recordId" type="String"/>
+    <header class="slds-modal__header">
+        <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Opportunity Record Creation</h2>    
+    </header>
+</aura:component>

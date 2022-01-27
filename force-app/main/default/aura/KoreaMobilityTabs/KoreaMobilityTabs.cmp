@@ -1,0 +1,39 @@
+<!--
+Name: KoreanMobilityTabs
+Author: Jagadish Babu
+Description: Replacement of Dohmi App for Korean Mobility Program
+Functionality : Parent component that contains all the Tab details
+-->
+<aura:component controller="KoreaMobilityTabs" implements="flexipage:availableForAllPageTypes" access="global" >
+    <aura:attribute name="selectedProducts" type="Object[]"/>
+    <aura:attribute name="orderDetails" type="Object"/>
+    <aura:attribute name="selectedProductCount" type="String" default="0"/>
+    <aura:attribute name="estimatedTotal" type="Long" default="0"/>
+    <aura:attribute name="isInitialized" type="Boolean" access="private" default="false" />
+    <aura:attribute name="selectedTabId" type="String" default="KMCustomerOrderTab"/>
+    <aura:attribute name="backOperation" type="Boolean"  default="false" />
+    <aura:attribute name="backButtonData" type="Object"/>
+    <aura:handler event="c:KMAddSelectedItemsToCart" action="{!c.selectedItemsCount}"/>
+    <aura:handler event="c:KMSendBackToButtonData" action="{!c.setBackButtonData}"/>
+    <aura:handler name="backToPreviousTab" event="c:KMBackToPreviousTab" action="{!c.changetoPreviousTab}"/>
+    <div class="slds-scrollable">
+        <lightning:tabset aura:id="KMTabsId" variant="vertical" selectedTabId="{!v.selectedTabId}">
+            <lightning:tab label="{!$Label.c.KM_Customer_Orders}" id="KMCustomerOrderTab" aura:id="customerOrdersId" onactive="{!c.handleActive}" iconName="utility:groups" iconAssistiveText="CO">
+            </lightning:tab>
+            <lightning:tab label="{!$Label.c.KM_Orders}" id="KMOrdersTab" onactive="{!c.handleActive}" iconName="utility:cart" iconAssistiveText="OR">
+                <aura:set attribute="label">
+                    {!$Label.c.KM_Orders} ({!v.selectedProductCount})
+                </aura:set>
+            </lightning:tab>
+
+            <lightning:tab label="{!$Label.c.KM_Products}" id="KMProductTab" onactive="{!c.handleActive}" iconName="utility:relate" iconAssistiveText="PR">
+            </lightning:tab>
+
+            <lightning:tab label="{!$Label.c.KM_Account_Receivables}" id="KMAccountReceivablesTab" onactive="{!c.handleActive}" iconName="utility:package" iconAssistiveText="AR">
+            </lightning:tab>
+
+            <lightning:tab label="{!$Label.c.KM_My_Account}" id="KMUserDetailTab" onactive="{!c.handleActive}" iconName="utility:user" iconAssistiveText="US">
+            </lightning:tab>
+        </lightning:tabset>
+    </div>
+</aura:component>

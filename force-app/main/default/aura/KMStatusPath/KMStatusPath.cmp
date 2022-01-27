@@ -1,0 +1,64 @@
+<!--
+    Component: KMStatusPath
+    Purpose: Component for Status display
+    Author: Sreenivas (Keste)
+    Created Date: 29th May 2020
+-->
+<aura:component >
+    <aura:attribute name="statusName" type="string"/>
+    <aura:registerEvent name="changeStatus" type="c:KMChangeStatus"/>
+    <div class="slds-path">
+        <div class="slds-grid slds-path__track">
+            <div class="slds-grid slds-path__scroller-container">
+                <div class="slds-path__scroller" role="application">
+                    <div class="slds-path__scroller_inner">
+                        <ul class="slds-path__nav" role="listbox" aria-orientation="horizontal">
+                            <li class="{!v.statusName == 'cart' ? 'slds-path__item slds-is-active':'slds-path__item slds-is-incomplete'}" 
+                            role="presentation" style="max-width: 100px;" data-statusname="cart" onclick="{!c.changeOrderStatusPath}">
+                                <a aria-selected="false" class="slds-path__link" href="javascript:void(0);" role="option" tabindex="-1">
+                                    <span class="slds-path__stage">
+                                        <span class="slds-assistive-text"></span>
+                                    </span>
+                                    <span class="slds-path__title">
+                                        <aura:if isTrue="{!v.statusName == 'cart'}">
+                                            <lightning:icon iconName="utility:cart" alternative-text="cart" size="x-small" variant="inverse"></lightning:icon>
+                                            <aura:set attribute="else">
+                                                <lightning:icon iconName="utility:cart" alternative-text="cart" size="x-small"></lightning:icon>
+                                            </aura:set>
+                                        </aura:if>
+                                    </span>
+                                </a>
+                            </li>
+                            <li class="{!v.statusName == 'shippingPayment' ? 'slds-path__item slds-is-active' : 'slds-path__item slds-is-incomplete'}" 
+                            role="presentation" data-statusName="shippingPayment" onclick="{!c.changeOrderStatusPath}">
+                                <a aria-selected="false" class="slds-path__link" href="javascript:void(0);" role="option" tabindex="-1">
+                                    <span class="slds-path__stage">
+                                        <span class="slds-assistive-text">ShippingPayment</span>
+                                    </span>
+                                    <span class="slds-path__title">{!$Label.c.KM_ShippingPayment}</span>
+                                </a>
+                            </li>
+                            <li class="{!v.statusName == 'review' ? 'slds-path__item slds-is-active' : 'slds-path__item slds-is-incomplete'}" 
+                            role="presentation" data-statusName="review" onclick="{!c.changeOrderStatusPath}">
+                                <a aria-selected="false" class="slds-path__link" href="javascript:void(0);" role="option" tabindex="-1">
+                                    <span class="slds-path__stage">
+                                        <span class="slds-assistive-text">Review</span>
+                                    </span>
+                                    <span class="slds-path__title">{!$Label.c.KM_Review}</span>
+                                </a>
+                            </li>
+                            <li class="{!v.statusName == 'confirmation' ? 'slds-path__item slds-is-active' : 'slds-path__item slds-is-incomplete'}" role="presentation">
+                                <a aria-selected="false" class="slds-path__link" href="javascript:void(0);" role="option" tabindex="-1">
+                                    <span class="slds-path__stage">
+                                        <span class="slds-assistive-text">Confirmation</span>
+                                    </span>
+                                    <span class="slds-path__title">{!$Label.c.KM_Confirmation}</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</aura:component>

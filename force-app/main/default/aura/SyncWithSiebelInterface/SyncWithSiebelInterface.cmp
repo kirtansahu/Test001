@@ -1,0 +1,73 @@
+<aura:component implements="flexipage:availableForRecordHome,force:lightningQuickActionWithoutHeader,force:hasRecordId" 
+                access="global" 
+                controller="SyncWithSiebelInterfaceController" 
+                extends="c:BaseComponent">
+    
+    <!-- Attributes -->
+    <aura:attribute name="recordId" type="String" />
+    <aura:attribute name="Spinner" type="boolean" default="FALSE"/>
+    <aura:attribute name="isValid" type="Boolean" default="FALSE"/>
+	
+    <!-- Inialization Handler -->
+    <aura:handler name="init" action="{!c.init}" value="{!this}" />
+    
+     <!-- Check if valid Contact record -->
+    <aura:if isTrue="{!v.isValid}">
+
+        <!--Styles-->
+        <!-- Overridding Standard Modal Component Styling -->
+        <aura:html tag="style">
+                .cuf-content {
+                    padding: 0 0rem !important;
+                }
+                .slds-p-around--medium {
+                    padding: 0rem !important;
+                }       
+                .slds-modal__content{
+                    overflow-y:hidden !important;
+                    height:unset !important;
+                    max-height:unset !important;
+                }
+        </aura:html>
+
+        <!-- Loading Spinner start... -->
+        <aura:if isTrue="{!v.Spinner}">
+            <div class="spinner-style">
+                <lightning:spinner alternativeText="Loading" size="large" variant="brand" class="spinner" />
+           </div>
+        </aura:if>
+
+        <!-- Lightning Modal Component Header -->
+        <div class="modal-header slds-modal__header slds-size_1-of-1">
+            <h3 class="title slds-text-heading--medium">
+                {!$Label.c.SYNCWITHSIEBELINTERFACE_HEADLINETEXT}
+            </h3>
+        </div>
+        
+        <!-- Lightning Modal Component Body -->
+        <div class="slds-modal__content slds-p-around--x-small slds-align_absolute-center slds-size_1-of-1 slds-is-relative">
+            <form class="slds-form--stacked">
+                <center>
+                    <h1 style="font-size: 25px;font-weight:bold;">Confirm</h1>
+                    <p style="font-size: 15px;">
+                        {!$Label.c.SYNCWITHSIEBELINTERFACE_BODYTEXT}
+                    </p><br/>
+                </center>
+            </form> 
+        </div>
+        
+        <!-- Lightning Modal Component Footer -->
+        <div class="modal-footer slds-modal__footer slds-size_1-of-1">
+            <div class="slds-grid">
+                <div class="slds-size_1-of-2 slds-text-align_left">
+                    <!-- Close Modal Component -->
+                    <button class="slds-button slds-button_neutral" type="button" onclick="{!c.closeQuickAction}">No</button>
+                </div>
+                <div class="slds-size_1-of-2 slds-text-align_right">
+                    <!-- Contact Outbound Integration -->
+                    <button class="slds-button slds-button_brand" type="button" onclick="{!c.siebelSync}">Yes</button>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+</aura:component>

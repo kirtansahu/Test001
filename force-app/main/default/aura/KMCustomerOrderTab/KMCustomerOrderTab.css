@@ -1,0 +1,41 @@
+.THIS .slds-truncate {
+    text-overflow: inherit;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.THIS .shiptotable{
+    font-size:12px;
+}
+
+.THIS .contacttable{
+    font-size:12px;
+}
+
+.THIS .contacttable th> div > a > span.slds-truncate{
+    font-size: 11px;
+}
+
+.THIS .slds-modal__container{
+    width:20%;
+}
+
+.THIS .paButtonStyle{
+    width: 100%;
+    height: 59px;
+}
+
+.THIS th> div.nonsortablecol{
+    font-size: 11px;
+    padding-top: 8px;
+    font-weight: 400;
+}
+
+.THIS .lineItemsTable th> div > a > span.slds-truncate{
+    font-size: 11px;
+}
+
+.THIS .lineItemsTable{
+    font-size: 11px;
+}

@@ -1,0 +1,51 @@
+<aura:component implements="flexipage:availableForRecordHome,force:lightningQuickActionWithoutHeader,force:hasRecordId" 
+                access="global"
+                controller="CustomLeadConvertCtrl"
+                extends="c:BaseComponent">
+    <!--Attributes-->
+    <aura:attribute name="recordId" type="String" />
+    <aura:attribute name="isValid" type="Boolean" default="false"/>
+    <aura:attribute name="oLead" type="Lead"/>
+    <aura:attribute name="errorMessage" type="String"/>
+    <aura:attribute name="isSFApp" type="Boolean" default="{!$Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet}"/>
+    
+    <aura:html tag="style">
+        .cuf-content {
+            padding: 0 0rem !important;
+        }   
+        .slds-modal__content{
+        	padding: 0rem !important;
+            overflow-y:hidden !important;
+            height:unset !important;
+            max-height:unset !important;
+        }
+    </aura:html>
+    
+    <!--Handler-->
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
+    <div>
+        <header class="slds-modal__header">
+            <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Confirm</h2>
+        </header>
+        <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1">
+            <div class="slds-text-align_center">
+                <p style="font-size: 15px;">Are you sure you want to convert this lead?</p><br/>
+            </div>
+            <aura:if isTrue="{!v.errorMessage}">
+                <div class="slds-text-color_error slds-inline_icon_text slds-grid slds-inline_icon_text--error">
+                    <lightning:icon iconName="utility:error" alternativeText="Error!" title="Error" variant="error" class="slds-p-left_small slds-icon slds-icon--small slds-m-right--small slds-col slds-no-flex"/>
+                    <div class="slds-col slds-align-middle slds-p-left_large"><p>{!v.errorMessage}</p></div>
+                </div>
+            </aura:if>
+        </div>
+        <footer class="slds-modal__footer slds-modal__footer_directional">
+            <aura:if isTrue="{!v.isValid}">
+                <button class="slds-button slds-button_neutral" type="button" onclick="{!c.closeQuickAction}">No</button>
+                <button class="slds-button slds-button_brand" type="button" onclick="{!c.convertLead}">Yes</button>
+                <aura:set attribute="else">
+                    <button class="slds-button slds-button_neutral" type="button" onclick="{!c.closeQuickAction}">Close</button>
+                </aura:set>
+            </aura:if>
+        </footer>
+    </div>
+</aura:component>

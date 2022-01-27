@@ -1,0 +1,43 @@
+<aura:component controller="QuickLinksCompCtrl" extends="c:BaseComponent" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    <!--attribute-->
+    <aura:attribute name="location" type="String"/>
+    <aura:attribute name="activeCategory" type="List"/>
+    <aura:attribute name="lstCategoryWrapper" type="List"/>
+    
+    <!--handler-->
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    
+    <!--markup-->
+    <div>
+        <article class="slds-card">
+            <div class="slds-card__body slds-card__body_inner">
+                <h1><b>Quick Links</b></h1>
+                <div class="clearfix"></div>
+                <aura:if isTrue="{!v.lstCategoryWrapper.length>0}">
+                    <lightning:accordion allowMultipleSectionsOpen="true" activeSectionName="{!v.activeCategory}">
+                        <aura:iteration items="{!v.lstCategoryWrapper}" var="oCategoryWrapper" > 
+                            <lightning:accordionSection name="{!oCategoryWrapper.name}" label="{!oCategoryWrapper.name}">
+                                <ul class="list-unstyled slds-p-left_large">
+                                    <aura:iteration items="{!oCategoryWrapper.links}" var="oCustomLinks"> 
+                                        <li class="media event">
+                                            <div class="media-body">
+                                                <a class="title" href="{!oCustomLinks.Link__c}" target="_blank">
+                                                    {!oCustomLinks.Label__c}
+                                                </a>
+                                                <p>{!oCustomLinks.Description__c}</p>
+                                            </div>
+                                        </li>
+                                        <br/>
+                                    </aura:iteration>
+                                </ul>
+                            </lightning:accordionSection>
+                        </aura:iteration>
+                    </lightning:accordion>
+                    <aura:set attribute="else">
+                        <p>{! $Label.c.QuickLink_NoLinkConfigMsg }</p>
+                    </aura:set>
+                </aura:if>
+            </div>
+        </article>
+    </div>
+</aura:component>

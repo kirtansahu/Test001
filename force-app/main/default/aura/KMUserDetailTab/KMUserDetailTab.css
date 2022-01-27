@@ -1,0 +1,13 @@
+.THIS .bolder {
+    font-weight: bolder;
+}
+
+.THIS .slds-form-element__label {
+    display: none;
+}
+
+.THIS .bottomBorder {
+    border-bottom-style: double;
+    border-bottom-color: lightgray;
+    border-bottom-width: thin;
+}

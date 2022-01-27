@@ -1,0 +1,10 @@
+<apex:page standardController="Account"  standardStylesheets="false" applyBodyTag="false" title="View Ship Tos On Map">
+<apex:includeLightning />
+    <div id="oe" />
+    <script>
+        var recordId = "{!$CurrentPage.Parameters.id}";    
+        $Lightning.use("c:ViewShipApp", function() {
+            $Lightning.createComponent("c:SGNAccountViewShipTosOnMap",{"recordId": recordId},"oe",function(cmp) {});
+        });
+    </script>
+</apex:page>

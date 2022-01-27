@@ -1,0 +1,14 @@
+<aura:component implements="lightning:appHomeTemplate" description="Custom Template for Dou-Mi">
+
+    <aura:attribute name="container" type="Aura.Component[]" />
+    <ltng:require styles="{!$Resource.KMCustomAppPageStyle}"/>
+
+    <div>
+        <lightning:layout horizontalAlign="spread">
+            <lightning:layoutItem flexibility="grow">
+                {!v.container}
+            </lightning:layoutItem>
+        </lightning:layout>
+    </div>
+
+</aura:component>

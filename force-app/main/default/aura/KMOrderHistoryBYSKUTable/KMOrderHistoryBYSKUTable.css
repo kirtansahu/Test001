@@ -1,0 +1,30 @@
+.THIS .slds-table{
+    font-size: 12px;
+}
+.THIS th> div > a > span.slds-truncate{
+    font-size: 12px;
+}
+.THIS th> div.nonsortablecol{
+    font-size: 12px;
+    padding-top: 8px;
+    font-weight: 400;
+}
+.THIS #ms-picklist-dropdown > div.slds-combobox__form-element.slds-input-has-icon.slds-input-has-icon_right{
+    font-size: 12px;
+    width: 154px;
+}
+.THIS #ms-dropdown-items{
+    font-size: 12px;
+}
+
+.THIS .slds-form-element__label {
+    display: none;
+}
+
+.THIS .slds-text-color_destructive {
+    font-weight : bold;
+}
+
+.THIS .warningModal {
+    width : 160%;
+}

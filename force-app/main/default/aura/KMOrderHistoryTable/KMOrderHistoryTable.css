@@ -1,0 +1,39 @@
+.THIS .slds-table{
+    font-size: 11px;
+}
+.THIS th> div > a > span.slds-truncate{
+    font-size: 11px;
+}
+
+.THIS th> div.nonsortablecol{
+    font-size: 11px;
+    padding-top: 8px;
+    font-weight: 400;
+}
+.THIS #ms-picklist-dropdown > div.slds-combobox__form-element.slds-input-has-icon.slds-input-has-icon_right{
+    font-size: 11px;
+    width: 170px;
+}
+
+.THIS #ms-dropdown-items{
+    font-size: 11px;
+}
+.THIS #ms-picklist-dropdown > div.slds-combobox__form-element.slds-input-has-icon.slds-input-has-icon_right{
+   margin-top:16px;
+}
+.THIS .todateStyle{
+    margin-left: -54px;
+}
+.THIS .ordertable .slds-cell-fixed{
+    margin-left:8px;
+}
+.THIS .ordertable #ContactName > div{
+    margin-left: -12px;
+}
+.THIS .lineItemsTable .slds-cell-fixed{
+    margin-left:10px;
+}
+
+.THIS .slds-form-element__label {
+    display: none;
+}

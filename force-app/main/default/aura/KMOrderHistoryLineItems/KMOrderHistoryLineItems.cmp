@@ -1,0 +1,235 @@
+<aura:component>
+
+    <!--Attributes-->
+    <aura:attribute name="orderHeaderInfo" type="Object" />
+    <aura:attribute name="accDetail" type="Account" />
+    <aura:attribute name="allLineItems" type="List"/>
+    <aura:attribute name="lineItems" type="List"/>
+    <aura:attribute name="showLineFilterBox" type="Boolean" default="true" access="private"/>
+    <aura:attribute name="lineFilterBox" type="String" access="private"/>
+    <aura:attribute name="disableLineFilterBox" type="Boolean" default="true" access="private"/>
+    <aura:attribute name="showLineStatus" type="Boolean" default="false"/>
+    <aura:attribute name="allLineStatus" type="List" default="['Entered','In Progress','Backorder','Shipped','Cancelled']" access="private"/>
+    <aura:attribute name="showLineDateFilter" type="Boolean" default="false" access="private"/>
+    <aura:attribute name="linefromDate" type="Date" access="private" />
+    <aura:attribute name="linetoDate" type="Date" access="private"/>
+    <aura:attribute name="sortLineField" type="String" default="LineNumber" access="private"/>
+    <aura:attribute name="sortLineAsc" type="Boolean" access="private"/>
+    <aura:attribute name="disableLineApplyBtn" type="Boolean" default="true" access="private"/>
+    <aura:attribute name="disableLineClearBtn" type="Boolean" default="true" access="private"/>
+    <aura:attribute name="showSpinner" type="Boolean" default="false"/>
+
+    <!--Events-->
+    <aura:registerEvent name="KMNavigateToAccountDetailsEvent" type="c:KMNavigateToAccountDetailsEvent" />
+
+    <center>
+        <div class="slds-page-header" style="font-size: 13px;">
+            <b>{!$Label.c.KM_Customer_Orders}</b>
+        </div>
+    </center>
+
+    <div>
+        <div class="slds-grid">
+            <div class="slds-col slds-size_1-of-5 slds-m-top_x-small slds-panel__body">
+                <b>{!$Label.c.KM_Order} : </b>{!v.orderHeaderInfo.OrderNumber}
+            </div>
+            <div class="slds-col slds-size_1-of-5 slds-m-top_x-small slds-panel__body">
+                <b> {!$Label.c.KM_PO} : </b>{!v.orderHeaderInfo.PONumber}
+            </div>
+            <div class="slds-col slds-size_1-of-5 slds-m-top_x-small slds-panel__body">
+                <b>{!$Label.c.KM_Order_Date} : </b>{!v.orderHeaderInfo.OrderDate}
+            </div>
+            <div class="slds-col slds-size_1-of-5 slds-m-top_x-small slds-panel__body">
+                <b>{!$Label.c.KM_Contact_Name} : </b>{!v.orderHeaderInfo.ContactName}
+            </div>
+            <div class="slds-col slds-size_1-of-5 slds-m-top_x-small slds-panel__body">
+                <b> {!$Label.c.KM_Promo_Quote} : </b>{!v.orderHeaderInfo.PromoNum}
+            </div>
+        </div>
+        <div>
+            <c:KMAccountDetails accountRecord="{!v.accDetail}"/>
+        </div>
+    </div>
+
+    <lightning:button variant="base" label="{!'&lt;' + $Label.c.KM_Back_to_Orders}" title="{!$Label.c.KM_Back_to_Orders}" onclick="{!c.navigateToAccountDetails}" />
+
+    <aura:if isTrue="{!v.allLineItems.length > 0}" >
+        <div class="slds-grid slds-size_12-of-12" >
+            <div class="slds-col slds-large-size_2-of-12 slds-medium-size_1-of-6">
+                <lightning:select name="lineFilterField" aura:id="lineFilterField" onchange="{!c.showLineFilterOption}">
+                    <option value="">{!$Label.c.KM_Filter_by}</option>
+                    <option value="ProductName">{!$Label.c.KM_Product_Name}</option>
+                    <option value="ProductNum">{!$Label.c.KM_Product_Filter_Option}</option>
+                    <option value="Status">{!$Label.c.KM_Status}</option>
+                    <option value="ShipmentDate">{!$Label.c.KM_Shipment_Date}</option>
+                    <option value="UserRequestedDate">{!$Label.c.KM_Est_Shipping_Date}</option>
+                    <option value="AvailabilityDate">{!$Label.c.KM_AvailabilityDate}</option>
+                </lightning:select>
+            </div>
+            <aura:if isTrue="{!v.showLineFilterBox}">
+                <div class="slds-col slds-large-size_2-of-12 slds-medium-size_2-of-6">
+                    <lightning:input  value="{!v.lineFilterBox}" aura:id="lineFltrBox" disabled="{!v.disableLineFilterBox}"/>
+                </div>
+            </aura:if>
+            <aura:if isTrue="{!v.showLineStatus}">
+                <div class="slds-col slds-size_3-of-10">
+                    <div class="slds-p-top_medium">
+                        <c:KMFieldDepency mslabel="" msoptions="{!v.allLineStatus}"  showFilterInput="false" showRefreshButton="false" showClearButton="false" aura:id="LineStatusesId" />
+                    </div>
+                </div>
+            </aura:if>
+            <aura:if isTrue="{!v.showLineDateFilter}">
+                <div class="slds-col slds-size_1-of-12 slds-m-top_large slds-m-left_x-small">
+                    <b>Date Filter:</b>
+                </div>
+                <div class="slds-col slds-size_2-of-12 slds-m-top_small">
+                    <ui:inputDate aura:id="LinefromDateField" value="{!v.linefromDate}" displayDatePicker="true" format="yyyy/MM/dd" change="{!c.dateValidation}"/>
+                </div>
+                <div class="slds-col slds-size_1-of-12 slds-m-top_large slds-m-left_x-small ">
+                    <b>To:</b>
+                </div>
+                <div class="slds-col slds-size_2-of-12 slds-m-top_small todateStyle">
+                    <ui:inputDate aura:id="LineEndDateField" value="{!v.linetoDate}" displayDatePicker="true" format="yyyy/MM/dd" change="{!c.dateValidation}"/>
+                </div>
+            </aura:if>
+            <div class="slds-col slds-large-size_4-of-12 slds-medium-size_2-of-6">
+                <lightning:button variant="brand" label="{!$Label.c.KM_Apply}" class="slds-m-top_medium slds-m-left_x-small" onclick="{!c.applyLineFilter}" aura:id="applyLineFltr" disabled="{!v.disableLineApplyBtn}"></lightning:button>
+                <lightning:button variant="brand" label="{!$Label.c.KM_Clear}" class="slds-m-top_medium slds-m-right_small" onclick="{!c.clearLineBox}" aura:id="clearLineFltr" disabled="{!v.disableLineClearBtn}"></lightning:button>
+            </div>
+        </div>
+    </aura:if>
+
+    <div class="slds-card__body slds-card__body_inner">
+        <div class="slds-table--header-fixed_container" style="height:250px;">
+            <div class="slds-scrollable_y" style="height:100%;">
+                <table class="slds-table slds-line-height_reset slds-table_bordered  slds-table_cell-buffer slds-table--header-fixed lineItemsTable">
+                    <colgroup>
+                        <col style="width:9%"/>
+                        <col style="width:15%"/>
+                        <col style="width:12%"/>
+                        <col style="width:9%"/>
+                        <col style="width:11%"/>
+                        <col style="width:11%"/>
+                        <col style="width:11%"/>
+                        <col style="width:11%"/>
+                        <col style="width:11%"/>
+                    </colgroup>
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <th  scope="col" class="slds-is-sortable" id="LineNumber" onclick="{!c.sortLineItems}">
+                                <div class="slds-truncate slds-cell-fixed" title="Line#">
+                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour" style="padding: .0rem" >
+                                        <span class="slds-assistive-text">Sort</span>
+                                        <span class="slds-truncate" title="Line#">{!$Label.c.KM_Line} </span>
+                                        <aura:if isTrue="{!and(v.sortLineField=='LineNumber', v.sortLineAsc)}">&nbsp;  &#9660; </aura:if>
+                                        <aura:if isTrue="{!and(v.sortLineField=='LineNumber', !v.sortLineAsc)}"> &nbsp;  &#9650; </aura:if>
+                                    </a>
+                                </div>
+                            </th>
+                            <th scope="col" class="slds-is-sortable" id="ProductName" onclick="{!c.sortLineItems}">
+                                <div class="slds-truncate slds-cell-fixed" title="Product#">
+                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour" style="padding: .0rem" >
+                                        <span class="slds-assistive-text">Sort</span>
+                                        <span class="slds-truncate" title="{!$Label.c.KM_Product}">{!$Label.c.KM_Product} </span>
+                                        <aura:if isTrue="{!and(v.sortLineField=='ProductName', v.sortLineAsc)}">&nbsp;  &#9660; </aura:if>
+                                        <aura:if isTrue="{!and(v.sortLineField=='ProductName', !v.sortLineAsc)}"> &nbsp;  &#9650; </aura:if>
+                                    </a>
+                                </div>
+                            </th>
+                            <th scope="col" class="slds-is-sortable" id="Status" onclick="{!c.sortLineItems}">
+                                <div class="slds-truncate slds-cell-fixed" title="Status">
+                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                        <span class="slds-assistive-text">Sort</span>
+                                        <span class="slds-truncate" title="Status">{!$Label.c.KM_Status}</span>
+                                        <aura:if isTrue="{!and(v.sortLineField=='Status', v.sortLineAsc)}">&nbsp;  &#9660; </aura:if>
+                                        <aura:if isTrue="{!and(v.sortLineField=='Status', !v.sortLineAsc)}"> &nbsp;  &#9650; </aura:if>
+                                    </a>
+                                </div>
+                            </th>
+                            <th class="" scope="col">
+                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Quantity">{!$Label.c.KM_Quantity}</div>
+                            </th>
+                            <th class="" scope="col">
+                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Customer Price">{!$Label.c.KM_Order_History_Customer_Price}</div>
+                            </th>
+                            <th scope="col" class="slds-is-sortable" id="ShipmentDate" onclick="{!c.sortLineItems}">
+                                <div class="slds-truncate slds-cell-fixed" title="Shipment Date">
+                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                        <span class="slds-assistive-text">Sort</span>
+                                        <span class="slds-truncate" title="Shipment Date">{!$Label.c.KM_Shipment_Date}</span>
+                                        <aura:if isTrue="{!and(v.sortLineField=='ShipmentDate', v,sortLineAsc)}">&nbsp;  &#9660; </aura:if>
+                                        <aura:if isTrue="{!and(v.sortLineField=='ShipmentDate', !v.sortLineAsc)}"> &nbsp;  &#9650; </aura:if>
+                                    </a>
+                                </div>
+                            </th>
+                            <th  scope="col" class="slds-is-sortable" id="UserRequestedDate" onclick="{!c.sortLineItems}">
+                                <div class="slds-truncate slds-cell-fixed" title="Est.Shipping Date">
+                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                        <span class="slds-assistive-text">Sort</span>
+                                        <span class="slds-truncate" title="Est.Shipping Date">{!$Label.c.KM_Est_Shipping_Date}</span>
+                                        <aura:if isTrue="{!and(v.sortLineField=='UserRequestedDate', v,sortLineAsc)}">&nbsp;  &#9660; </aura:if>
+                                        <aura:if isTrue="{!and(v.sortLineField=='UserRequestedDate', !v.sortLineAsc)}"> &nbsp;  &#9650; </aura:if>
+                                    </a>
+                                </div>
+                            </th>
+                            <th  scope="col" class="slds-is-sortable" id="AvailabilityDate" onclick="{!c.sortLineItems}" >
+                                <div class="slds-truncate slds-cell-fixed" title="Availability Date">
+                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                        <span class="slds-assistive-text">Sort</span>
+                                        <span class="slds-truncate" title="Availability Date">{!$Label.c.KM_AvailabilityDate}</span>
+                                        <aura:if isTrue="{!and(v.sortLineField=='AvailabilityDate', v,sortLineAsc)}">&nbsp;  &#9660; </aura:if>
+                                        <aura:if isTrue="{!and(v.sortLineField=='AvailabilityDate', !v.sortLineAsc)}"> &nbsp;  &#9650; </aura:if>
+                                    </a>
+                                </div>
+                            </th>
+                            <th class="" scope="col">
+                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Carrier">{!$Label.c.KM_Order_History_Carrier}</div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <aura:if isTrue="{!v.lineItems.length == 0}">
+                            <tr >
+                                <td colspan="999" data-label="Nodata" scope="col" style="text-align: center;">
+                                    {!$Label.c.KM_No_Records_found}
+                                </td>
+                            </tr>
+                        </aura:if>
+                        <aura:iteration items="{!v.lineItems}" var="LI">
+                            <tr class="slds-hint-parent">
+                                <td data-label="Line#" scope="col">
+                                    <div class="slds-truncate" >{!LI.LineNumber}</div>
+                                </td>
+                                <td data-label="Product " scope="col">
+                                    <div class="slds-truncate" >{!LI.ProductName}<br/><b>Product #:</b>{!LI.ProductNum}<br/><b>Unit Size:</b>{!LI.UnitSize}<br/><b>Tracking Number:</b>{!LI.TrackingNumber}</div>
+                                </td>
+                                <td data-label="Status" scope="col">
+                                    <div class="slds-truncate" >{!LI.Status}</div>
+                                </td>
+                                <td data-label="Quantity" scope="col">
+                                    <div class="slds-truncate" >{!LI.Quantity}</div>
+                                </td>
+                                <td data-label="Customer Price" scope="col">
+                                    <div class="slds-truncate" >{!LI.CustomerPrice}</div>
+                                </td>
+                                <td data-label="Shipment Date" scope="col">
+                                    <div class="slds-truncate" >{!LI.ShipmentDate}</div>
+                                </td>
+                                <td data-label="Est.Shipping Date" scope="col">
+                                    <div class="slds-truncate" >{!LI.UserRequestedDate}</div>
+                                </td>
+                                <td data-label="Availability Date" scope="col">
+                                    <div class="slds-truncate" >{!LI.AvailabilityDate}</div>
+                                </td>
+                                <td data-label="Carrier" scope="col">
+                                    <div class="slds-truncate" >{!LI.Carrier}</div>
+                                </td>
+                            </tr>
+                        </aura:iteration>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</aura:component>

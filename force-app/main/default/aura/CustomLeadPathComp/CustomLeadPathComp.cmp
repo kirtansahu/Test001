@@ -1,0 +1,151 @@
+<aura:component controller="CustomLeadPathCompCtrl" extends="c:BaseComponent" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global">
+    <!-- attributes -->
+    <aura:attribute name="recordId" type="String"/>
+    <aura:attribute name="currentLeadStatus" type="String"/>
+    <aura:attribute name="showSpinner" type="Boolean" default="false"/>
+    <aura:attribute name="oLead" type="Lead"/>
+    <aura:attribute name="lstLeadStatus" type="List"/>
+    <aura:attribute name="RejectReasonOptions" type="List"/>
+    <aura:attribute name="CompletedOptions" type="List"/>
+    
+    <!--handlers-->
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    
+    <!--markup-->
+    <article class="slds-card">
+        <div class="slds-card__body slds-card__body_inner">
+            <div class="slds-path">
+                <div class="slds-grid slds-path__track">
+                    <div class="{! 'slds-grid '+(($Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet)?'custom-overflow':'slds-path__scroller-container')}">
+                        <div class="{!(($Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet)?'':'slds-path__scroller')}" role="application">
+                            <div class="slds-path__scroller_inner">
+                                <ul class="slds-path__nav" role="listbox" aria-orientation="horizontal">
+                                    <aura:iteration items="{!v.lstLeadStatus}" var="wrap" indexVar="index">
+                                        <li class="{! 'slds-path__item '+(wrap.status == 'completed'?'slds-is-complete':(wrap.status == 'current'?'slds-is-current slds-is-active':'slds-is-incomplete'))}" role="presentation" data-row-index="{!index}" onclick="{!c.handleStatusChange}">
+                                            <a aria-selected="false" class="slds-path__link" href="javascript:void(0);" id="path-6" role="option" tabindex="-1">
+                                                <span class="slds-path__stage">
+                                                    <lightning:icon iconName="utility:check" size="xx-small" variant="inverse" alternativeText="check" />
+                                                    <span class="slds-assistive-text">Stage Complete</span>
+                                                </span>
+                                                <span class="slds-path__title">{!wrap.label}</span>
+                                            </a>
+                                        </li>
+                                    </aura:iteration>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="{!'slds-grid slds-path__action '+(($Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet)?'slds-var-p-top_small':'')}">
+                        <aura:if isTrue="{! v.oLead.Status == v.currentLeadStatus}">
+                            <button class="slds-button slds-button_brand slds-path__mark-complete" type="button" onclick="{!c.handleMarkAsComplete}">
+                                <lightning:icon iconName="utility:check" size="xx-small" variant="inverse" alternativeText="check" />
+                                Mark Status as Complete
+                            </button>
+                            <aura:set attribute="else">
+                                <button class="slds-button slds-button_brand slds-path__mark-complete" onclick="{!c.handleMarkCurrentStatus}">
+                                    {!v.oLead.Status == 'Converted'?'Select Converted Status':'Mark as Current Status'}
+                                </button>
+                            </aura:set>
+                        </aura:if>   
+                    </div>
+                </div>
+            </div>
+            <!--Reject_Model-->
+            <div aura:id="rejectModel" class="slds-hide">
+                <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+                    <aura:if isTrue="{! v.showSpinner}">
+                        <lightning:spinner alternativeText="Loading" variant="brand" />
+                    </aura:if>
+                    <div class="slds-modal__container">
+                        <header class="slds-modal__header">
+                            <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick="{!c.handleCloseModal}">
+                                <lightning:icon iconName="utility:close" variant="inverse" size="small" />
+                                <span class="slds-assistive-text">Close</span>
+                            </button>
+                            <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Edit Dependencies</h2>
+                        </header>
+                        <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1">
+                            <lightning:select label="Status" required="true" disabled="true">
+                                <option text="{!v.oLead.Status}" value="{!v.oLead.Status}"></option>
+                            </lightning:select>
+                            
+                            <lightning:select label="Lead Rejected Reason" value="{!v.oLead.Lead_Rejection_Reason__c}" aura:id="lead_Rejected_Reason" required="true">
+                                <aura:iteration items="{!v.RejectReasonOptions}" var="options">
+                                    <option text="{!options.label}" value="{!options.value}"></option>
+                                </aura:iteration>
+                            </lightning:select>
+                        </div>
+                        <footer class="slds-modal__footer">
+                            <button class="slds-button slds-button_neutral" type="button" onclick="{!c.handleCloseModal}">Cancel</button>
+                            <button class="slds-button slds-button_brand" type="button" onclick="{!c.handleUpdateRejectedLead}">Save</button>
+                        </footer>
+                    </div>
+                </section>
+                <div class="slds-backdrop slds-backdrop_open"></div>
+            </div>
+            
+            <!--Lead_Complete_Model-->
+            <div aura:id="leadCompleteModel" class="slds-hide">
+                <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+                    <aura:if isTrue="{! v.showSpinner}">
+                        <lightning:spinner alternativeText="Loading" variant="brand" />
+                    </aura:if>
+                    <div class="slds-modal__container">
+                        <header class="slds-modal__header">
+                            <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick="{!c.handleCloseModal}">
+                                <lightning:icon iconName="utility:close" variant="inverse" size="small" />
+                                <span class="slds-assistive-text">Close</span>
+                            </button>
+                            <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Edit Dependencies</h2>
+                        </header>
+                        <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1">
+                            <lightning:select label="Status" required="true" disabled="true">
+                                <option text="{!v.oLead.Status}" value="{!v.oLead.Status}"></option>
+                            </lightning:select>
+                            
+                            <lightning:select label="Completed - Valid, Invalid?" value="{!v.oLead.Completed__c}" aura:id="Completed__c" required="true">
+                                <aura:iteration items="{!v.CompletedOptions}" var="options">
+                                    <option text="{!options.label}" value="{!options.value}"></option>
+                                </aura:iteration>
+                            </lightning:select>
+                        </div>
+                        <footer class="slds-modal__footer">
+                            <button class="slds-button slds-button_neutral" type="button" onclick="{!c.handleCloseModal}">Cancel</button>
+                            <button class="slds-button slds-button_brand" type="button" onclick="{!c.handleUpdateCompletedLead}">Save</button>
+                        </footer>
+                    </div>
+                </section>
+                <div class="slds-backdrop slds-backdrop_open"></div>
+            </div>
+
+            <!--Convert_Lead_Modal-->
+            <div aura:id="convertLeadModel" class="slds-hide">
+                <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+                    <aura:if isTrue="{! v.showSpinner}">
+                        <lightning:spinner alternativeText="Loading" variant="brand" />
+                    </aura:if>
+                    <div class="slds-modal__container">
+                        <header class="slds-modal__header">
+                            <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick="{!c.handleCloseModal}">
+                                <lightning:icon iconName="utility:close" variant="inverse" size="small" />
+                                <span class="slds-assistive-text">Close</span>
+                            </button>
+                            <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Confirm</h2>
+                        </header>
+                        <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1">
+                            <div class="slds-text-align_center">
+                                <p style="font-size: 15px;">Are you sure you want to convert this lead?</p><br/>
+                            </div>
+                        </div>
+                        <footer class="slds-modal__footer slds-modal__footer_directional">
+                            <button class="slds-button slds-button_neutral" type="button" onclick="{!c.handleCloseModal}">No</button>
+                            <button class="slds-button slds-button_brand" type="button" onclick="{!c.handleConvertLeadJS}">Yes</button>
+                        </footer>
+                    </div>
+                </section>
+                <div class="slds-backdrop slds-backdrop_open"></div>
+            </div>
+        </div>
+    </article>
+</aura:component>

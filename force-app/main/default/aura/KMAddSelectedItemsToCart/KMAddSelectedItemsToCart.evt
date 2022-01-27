@@ -1,0 +1,5 @@
+<aura:event type="APPLICATION" description="Event template" >
+    <aura:attribute name="orderedProducts" type="Object[]"/>
+    <aura:attribute name="orderDetails" type="Object"/>
+    <aura:attribute name="replaceProducts" type="boolean"/>
+</aura:event>

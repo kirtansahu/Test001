@@ -1,0 +1,106 @@
+<!--
+    Component: KMOrderSummary
+    Purpose: Component for Order Summary display
+    Author: Sreenivas (Keste)
+    Created Date: 29th May 2020
+-->
+<aura:component controller="KMOrderSummary">
+    <!-- Attributes -->
+    <aura:attribute name="estimatedTotal" type="Long"/>
+    <aura:attribute name="currencyCode" type="string"/>
+    <aura:attribute name="statusName" type="String"/>
+    <aura:attribute name="shipToNumber" type="String"/>
+    <aura:attribute name="quoteOptions" type="List"/>
+    <aura:attribute name="promotionCodeOptions" type="List"/>
+    <aura:attribute name="promotionOptions" type="List"/>
+    <aura:attribute name="promotionType" type="String"/>
+    <aura:attribute name="quote" type="String"/>
+    <aura:attribute name="promotionCode" type="String"/>
+    <!-- Events and Handlers -->
+    <aura:registerEvent name="setOrderStatus" type="c:KMSetOrderStatus"/>
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    
+	<div class="slds-box">
+        <div class="">
+            <div class="slds-panel__header">
+                <h2 class="slds-text-heading_small" title="{!$Label.c.KM_OrderSummary_HedLabel}">
+                    {!$Label.c.KM_OrderSummary_HedLabel}
+                </h2>
+            </div>
+            <!-- Custom radiobutton implemention-->
+            <div class="slds-grid slds-wrap slds-form-element__row">
+                <div class="slds-col slds-size_1-of-2 slds-m-top_x-small slds-medium-size--1-of-2 slds-large-size--1-of-2">
+                    <div class="slds-form-element" style="width: 135px;">
+                        <span class="slds-radio">
+                            <input type="radio" id="quote" name="promotionType" checked="{!v.promotionType == 'quote'}"
+                            value="quote"  onchange="{!c.setPromotionTypeValue}" disabled="{!v.statusName != 'cart'}"/>
+                            <label class="slds-radio__label" for="quote">
+                                <span class="slds-radio_faux"></span>
+                                <span class="slds-form-element__label">
+                                    {!$Label.c.KM_QuoteLabel}
+                                </span>
+                            </label>
+                        </span>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-m-top_x-small slds-medium-size--1-of-2 slds-large-size--1-of-2">
+                    <div class="slds-form-element" style="width: 130px;">
+                        <lightning:combobox variant="label-hidden" name="quote" label="Quote"
+                        value="{!v.quote}" placeholder="Select Quote" options="{!v.quoteOptions}"
+                        dropdownAlignment="right" onchange="{!c.saveQuoteAndPromoCodes}"
+                        disabled="{!v.statusName == 'cart' ? v.promotionType == 'quote'? false:true :true}" />
+                    </div>
+                </div>
+            </div>
+            <div class="slds-grid slds-wrap slds-form-element__row">
+                <div class="slds-col slds-size_1-of-2 slds-m-top_x-small slds-medium-size--1-of-2 slds-large-size--1-of-2">
+                    <div class="slds-form-element" style="width: 135px;">
+                        <span class="slds-radio">
+                            <input type="radio" id="promotionCode" name="promotionType" checked="{!v.promotionType == 'promotionCode'}"
+                            value="promotionCode"  onchange="{!c.setPromotionTypeValue}" disabled="{!v.statusName != 'cart'}"/>
+                            <label class="slds-radio__label" for="promotionCode">
+                                <span class="slds-radio_faux"></span>
+                                <span class="slds-form-element__label">
+                                    {!$Label.c.KM_PromoCodeLabel}
+                                </span>
+                            </label>
+                        </span>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-m-top_x-small slds-medium-size--1-of-2 slds-large-size--1-of-2">
+                    <div class="slds-form-element" style="width: 130px;">
+                        <lightning:input variant="label-hidden" name="promotionCode" label="Promotion Code"
+                        value="{!v.promotionCode}" onchange="{!c.saveQuoteAndPromoCodes}"
+                        disabled="{!v.statusName == 'cart' ? v.promotionType == 'promotionCode'? false:true :true}"/>
+                    </div>
+                </div>
+            </div>
+            <div class="slds-m-top_x-small" style="height:5rem;background-color:black">
+                <div class="slds-align_left" style="padding-top: 20px;padding-left: 40px;">
+                    <div style="color:white">{!$Label.c.KM_Estimatedtotal}: </div>
+                    <div style="color:white">
+                        <lightning:formattedText value="{!v.currencyCode}"/> &nbsp;
+                        <lightning:formattedNumber value="{!v.estimatedTotal}" minimumFractionDigits="0" maximumFractionDigits="0"/>
+                    </div>
+                </div>
+            </div>
+            <div class="slds-align_absolute-center slds-m-top_x-small">
+                <aura:if isTrue="{!v.statusName == 'cart'}">
+                    <lightning:button variant="brand" label="{!$Label.c.KM_ReviewShippingPayment_Btn}"
+                    name="shippingPayment" title="{!$Label.c.KM_ReviewShippingPayment_Btn}"
+                    class="slds-m-top_medium" onclick="{!c.reviewOrdersData}"></lightning:button>
+                </aura:if>
+                <aura:if isTrue="{!v.statusName == 'shippingPayment'}">
+                    <lightning:button variant="brand" label="{!$Label.c.KM_Continuetoreview_Btn}"
+                    name="review" title="{!$Label.c.KM_Continuetoreview_Btn}" class="slds-m-top_medium"
+                    onclick="{!c.reviewOrdersData}"></lightning:button>
+                </aura:if>
+                <aura:if isTrue="{!v.statusName == 'review'}">
+                    <lightning:button variant="brand" label="{!$Label.c.KM_SendEmail_Btn}"
+                    name="confirmation" title="{!$Label.c.KM_SendEmail_Btn}" class="slds-m-top_medium"
+                    onclick="{!c.reviewOrdersData}"></lightning:button>
+                </aura:if>
+            </div>
+        </div>
+    </div>
+</aura:component>

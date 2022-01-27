@@ -1,0 +1,50 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" 
+                access="global"
+                controller="SGNAccountViewShipOnMap"
+                extends="c:BaseComponent">
+    <!-- attributes -->
+    <aura:attribute name="mapMarkers" type="Object"/>
+    <aura:attribute name="center" type="Object" />
+    <aura:attribute name="zoomLevel" type="Integer" />
+    <aura:attribute name="markersTitle" type="String" />
+    <aura:attribute name="showFooter" type="Boolean" />
+    <aura:attribute name="isModalOpen" type="Boolean" default="false"/>
+    
+    <!-- handlers-->
+    <aura:handler name="init" value="{! this }" action="{! c.init }"/>
+    
+    <aura:if isTrue="{!v.mapMarkers.length > 0}" >
+        <div>
+            <lightning:map mapMarkers="{! v.mapMarkers }"
+                           zoomLevel="{! v.zoomLevel }"
+                           markersTitle="{! v.markersTitle }">
+            </lightning:map>
+        </div>
+        <aura:set attribute="else">
+            <aura:if isTrue="{!v.isModalOpen}" >
+                <!-- Modal/Popup Box starts here-->
+                <section role="dialog" 
+                         tabindex="-1" 
+                         aria-labelledby="modal-heading-01" 
+                         aria-modal="true" 
+                         aria-describedby="modal-content-id-1" 
+                         class="slds-modal slds-fade-in-open">
+                    <div class="slds-modal__container">
+                        <!-- Modal/Popup Box Header Starts here-->
+                        <header class="slds-modal__header">
+                            <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">
+                                {!$Label.c.SGN_ACCOUNTVIEW_NOCHILDADDRESSESFOUND}
+                            </h2>
+                        </header>
+                        <!--Modal/Popup Box Body Starts here-->
+                        <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                            <aura:unescapedHtml value="{!$Label.c.SGN_ACCOUNTVIEW_NOCHILDADDRESSESFOUND_MSG}"/>
+                        </div>
+                        
+                    </div>
+                </section>
+                <div class="slds-backdrop slds-backdrop_open"></div>
+            </aura:if>
+        </aura:set>
+    </aura:if>        
+</aura:component>

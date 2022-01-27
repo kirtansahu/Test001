@@ -1,0 +1,43 @@
+<apex:page sidebar="false" showHeader="false">
+    <script>
+    function detectmob() { 
+        if( navigator.userAgent.match(/Android/i)
+        || navigator.userAgent.match(/webOS/i)
+        || navigator.userAgent.match(/iPhone/i)
+        || navigator.userAgent.match(/iPad/i)
+        || navigator.userAgent.match(/iPod/i)
+        || navigator.userAgent.match(/BlackBerry/i)
+        || navigator.userAgent.match(/Windows Phone/i)
+        ){
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    
+    window.onload = function() {
+        console.log("============= appName "+navigator.appName);
+        console.log("============= userAgent "+navigator.userAgent);
+        var isMob = detectmob();
+        console.log("============= isMob "+isMob);
+        if('{!$Profile.Name}' != 'System Administrator'){
+        //if(isMob){
+        //alert('You are on mobile phone in classic experiance, its not supported anymore please use lightning experiance or request desktop version');
+        window.top.location.href = '/apex/ClassicExperianceWarning';
+        //}
+        }
+    };
+    </script>
+    <apex:form >
+        <center>
+            <span style="font-size: 26px;">
+                <b>
+                    <br/><br/>
+                    <span style="color: #ff0000;">{!$Label.ClassicExperianceWarning}</span> 
+                    <br/><br/>
+                </b>
+            </span>
+        </center>
+    </apex:form>
+</apex:page>

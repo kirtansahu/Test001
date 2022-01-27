@@ -1,0 +1,3 @@
+<design:component label="Quick Links">
+    <design:attribute name="location" label="Location" datasource="apex://QuickLinksPicklistCtrl"/>
+</design:component>

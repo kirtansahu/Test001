@@ -1,0 +1,42 @@
+<aura:component extensible="true">
+    <!--Libraries-->
+    <lightning:notificationsLibrary aura:id="notifLib"/>
+    <lightning:overlayLibrary aura:id="overlayLib"/>
+    <lightning:workspaceAPI aura:id="workspace"/>
+    <aura:attribute name="isWaiting" type="Boolean" default="false"/>
+    
+    <aura:attribute name="classic_showToast" type="Boolean" default="false"/>
+    <aura:attribute name="classic_toastType" type="String" default="error"/>
+    <aura:attribute name="classic_toastMessage" type="String" default="Something went wrong"/>
+    
+    <aura:if isTrue="{!v.isWaiting}">
+        <div class="backgroundInverse">
+            <div class="base-spinner">
+                <lightning:spinner alternativeText="Waiting for response" size="large" />
+            </div>
+        </div>
+    </aura:if>
+    
+    <aura:if isTrue="{!v.classic_showToast}">
+        <div class="demo-only" style="height: 4rem;">
+            <div class="slds-notify_container slds-is-relative">
+                <div class="{!'slds-notify slds-notify_toast slds-theme_'+v.classic_toastType}" role="status">
+                    <span class="slds-assistive-text">{!v.classic_toastType}</span>
+                    <span class="{!'slds-icon_container slds-icon-utility-'+v.classic_toastType+' slds-m-right_small slds-no-flex slds-align-top'}" title="{!v.classic_toastType}">
+                        <lightning:icon variant="inverse" iconName="{!'utility:'+v.classic_toastType}" alternativeText="{!v.classic_toastType}"/>
+                    </span>
+                    <div class="slds-notify__content">
+                        <h2 class="slds-text-heading_small ">
+                            <lightning:formattedRichText value="{!v.classic_toastMessage}"/>
+                        </h2>
+                    </div>
+                    <div class="slds-notify__close">
+                       	<lightning:button variant="inverse" iconName="utility:close" iconPosition="left" label="" title="" onclick="{!c.closeClassicToast}" class="classic_toastClose slds-button slds-button_icon slds-button_icon-inverse slds-button__icon slds-button__icon_large"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+    
+    {!v.body}
+</aura:component>

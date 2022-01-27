@@ -1,0 +1,208 @@
+<!--
+@ author: Jagadish Babu
+@ Date:   17/04/2020
+@ feature: Korean Mobility
+@ Description : Component for Customer order screen
+@ UserStory : Customers/Orders : Implement search  ShipTo, ShipAlphaName, Contact Name, Email
+-->
+<aura:component controller="KMCustomersOrdersCls" access="global" extends="c:BaseComponent">
+
+    <!--Customer Order Search Ship TO Table Attributes-->
+    <aura:attribute name="shipToList" type="Account[]" />
+    <aura:attribute type="Boolean" name="showCOSearch" default="true"/>
+    <aura:attribute name="showCustomerOrderTable" type="boolean" default="false"/>
+    <aura:attribute name="sortField" type="String" default="Account_Alpha_Name__c"/>
+    <aura:attribute name="sortConAsc" type="Boolean" default="true"/>
+    <aura:attribute name="sortConField" type="String" default="Name"/>
+    <aura:attribute name="shipToNumbers" type="String"/>
+    <aura:attribute name="accountLength" type="Integer"/>
+    <aura:attribute name="searchInput" type="String"/>
+    <aura:attribute name="enableSearch" type="Boolean" default="true"/>
+    <aura:attribute type="boolean" name="hideCustomerOrder" default="true"/>
+    <aura:attribute name="productSearchInput" type="String"/>
+    <!--End-->
+    <!--Customer Order Search Contact Table Attributes-->
+    <aura:attribute name="showContactTable" type="boolean" default="false"/>
+    <aura:attribute name="contactList" type="Contact[]" />
+    <aura:attribute name="consortCon" type="Boolean"/>
+    <aura:attribute name="conLength" type="Integer" />
+    <aura:attribute name="conselectedTabsoft1" type="string" default="Name"
+        description="Use for show/hide arraow sign on header based on conditions"/>
+    <!--End-->
+    <!--Contact Detail UI Attributes-->
+    <aura:attribute name="showContactDetail" type="Boolean" default="false"/>
+    <aura:attribute name="accId" type="String"/>
+    <aura:attribute name="accDetail" type="Account" />
+    <aura:attribute name="contFilterBox" type="String"/>
+    <aura:attribute name="contactHistory" type="Contact[]" />
+    <aura:attribute name="allContactHistory" type="Contact[]" />
+    <aura:attribute name="sortConHisAsc" type="Boolean" default="true"/>
+    <aura:attribute name="sortConHisField" type="String" default="Name"/>
+    <aura:attribute name="tabValue" type="String" default="contactHistoryTabId"/>
+    <aura:attribute name="selectedContact" type="Contact" />
+    <aura:attribute name="selectedOption" type="String"/>
+    <aura:attribute name="disableApplyButton" type="Boolean" default="true"/>
+    <aura:attribute name="disableClearButton" type="Boolean" default="true"/>
+    <aura:attribute name="shipToContactFilter" type="String" />
+    <aura:attribute name="disableShipToContactFilter" type="Boolean" default="true"/>
+    <aura:attribute name="backOperation" type="Boolean" default="false"/>
+    <aura:attribute name="formType" type="String"/>
+    <!--End-->
+    <!--Error Message handling Attributes-->
+    <aura:attribute name="errorMessage" type="String"/>
+    <aura:attribute name="showError" type="Boolean" default="false"/>
+    <!--End-->
+    <!--Spinner Attribute-->
+    <aura:attribute name="showSpinner" type="Boolean" default="false"/>
+    <!--End-->
+    <!--Product Availability Model Screen Attributes-->
+    <aura:attribute name="showPAModel" type="Boolean" default="false"/>
+    <aura:attribute name="showProductAvailability" type="Boolean" default="false"/>
+    <aura:attribute name="showQuickOrderCapture" type="Boolean" default="false"/>
+    <!--End-->
+    <!--Line Items Table Start-->
+    <aura:attribute name="showLineItemSection" type="Boolean" default="false"/>
+    <aura:attribute name="showOrderHeaderInfo" type="Boolean" default="false"/>
+    <aura:attribute name="orderHeaderInfo" type="Object" />
+    <aura:attribute name="lineItems" type="List"/>
+    <aura:attribute name="allLineItems" type="List"/>
+    <!-- <aura:handler name="change" value="{!v.linefromDate}" action="{!c.Datevalidation}"/>
+    <aura:handler name="change" value="{!v.linetoDate}" action="{!c.Datevalidation}"/> -->
+    <!--End of Line Item-->
+
+    <!--Handlers-->
+    <aura:handler name="KMTableRowClickEvent" event="c:KMTableRowClickEvent" action="{!c.handleTableRowClickEvent}"/>
+    <aura:handler name="KMNavigateToAccountDetailsEvent" event="c:KMNavigateToAccountDetailsEvent" action="{!c.navigateToAccountDetails}"/>
+    <aura:handler name="cmpEvent" event="c:KMSendOrderHeaderToCOtab" action="{!c.handleOrderEvent}"/>
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <!-- <aura:handler name="change" value="{!v.tabValue}" action="{!c.loadOrderHistoryBySKUTab}"/> -->
+
+    <!-- START OF CUSTOMER ORDER SECTION -->
+    <aura:if isTrue="{!v.hideCustomerOrder}">
+        <div aura:id="customerOrderId">
+            <aura:if isTrue="{!v.showCOSearch}">
+                <div>
+                    <c:KMCustomerOrderSearch aura:id="customerSearchCompId" selectedOption="{!v.selectedOption}" contactList="{!v.contactList}" shipToList="{!v.shipToList}"
+                        showCustomerOrderTable="{!v.showCustomerOrderTable}" showContactTable="{!v.showContactTable}" showSpinner="{!v.showSpinner}"
+                        accountLength="{!v.accountLength}" conLength="{!v.conLength}" searchInput="{!v.searchInput}" enableSearch="{!v.enableSearch}"
+                    />
+                </div>
+            </aura:if>
+            <!-- Screen 2 -->
+            <!-- START OF CONTACT DETAIL SECTION -->
+            <aura:if isTrue="{!v.showContactDetail}">
+                <div class="slds-grid slds-grid_vertical">
+                    <div class="slds-col slds-float_left">
+                        <lightning:buttonIcon iconName="utility:back"  variant="border-filled" onclick="{! c.backToPage }" title="{!$Label.c.KM_Back_To_Page}" />
+                    </div>
+                    <center>
+                        <div class="slds-page-header" style="font-size: 13px;">
+                            <b>{!$Label.c.KM_Customer_Orders}</b>
+                        </div>
+                    </center>
+                    <div class="slds-col">
+                        <c:KMAccountDetails accountRecord="{!v.accDetail}"/>
+                    </div>
+                    <div class="slds-grid slds-grid_align-end">
+                        <lightning:button variant="brand" label="{!$Label.c.KM_Capture_Order}" title="{!$Label.c.KM_Capture_Order}" onclick="{!c.openCaptureOrderModel}" />
+                    </div>
+                </div>
+                <div class="slds-col slds-m-top_xx-small">
+                    <lightning:tabset selectedTabId="{!v.tabValue}">
+                        <aura:if isTrue="{!v.showCustomerOrderTable}">
+                            <lightning:tab label="{!$Label.c.KM_Ship_To_Contact}" id="contactHistoryTabId">
+                                <c:KMShipToContactTable allContactHistory="{!v.allContactHistory}" contactHistory="{!v.contactHistory}"
+                                    contactList="{!v.contactList}" accDetail="{!v.accDetail}" contFilterBox="{!v.contFilterBox}" sortConHisField="{!v.sortConHisField}"
+                                    consortCon="{!v.consortCon}" sortConHisAsc="{!v.sortConHisAsc}" conselectedTabsoft1="{!v.conselectedTabsoft1}" showSpinner="{!v.showSpinner}"
+                                    disableApplyButton="{!v.disableApplyButton}" disableClearButton="{!v.disableClearButton}" shipToContactFilter="{!v.shipToContactFilter}"
+                                    disableShipToContactFilter="{!v.disableShipToContactFilter}"
+                                />
+                            </lightning:tab>
+                        </aura:if>
+                        <lightning:tab label="{!$Label.c.KM_Order_History}" id="OrderHistoryTabId">
+                            <c:KMOrderHistoryTable shipToNumber="{!v.accDetail.ERP_Account_Id__c}"/>
+                        </lightning:tab>
+                        <lightning:tab label="{!$Label.c.KM_Order_History_By_SKU}"  id="OrderHistorybySKUTabId" aura:id="ordHistorybySKUTabId">
+                            <c:KMOrderHistoryBYSKUTable  accountRecord="{!v.accDetail}" ShipToNumber="{!v.accDetail.ERP_Account_Id__c}"
+                            selectedOption="{!v.selectedOption}" searchInput="{!v.searchInput}"/>
+                        </lightning:tab>
+                    </lightning:tabset>
+                </div>
+            </aura:if>
+            <!-- END OF CONTACT DETAIL SECTION -->
+
+            <!-- START OF ERROR MESSAGE PANEL-->
+            <aura:if isTrue="{!v.showError}">
+                <div class="slds-col slds-size_12-of-12 slds-m-top_x-small" >
+                    <c:KMMessageComponent type="error" message="{!v.errorMessage}" />
+                </div>
+            </aura:if>
+            <!-- END OF ERROR MESSAGE PANEL-->
+
+            <!-- START OF PRODUCT AVAILABILITY MODEL PANEL-->
+            <aura:if isTrue="{!v.showPAModel}">
+                <section role="dialog" class="slds-modal slds-fade-in-open">
+                    <div class="slds-modal__container">
+                        <!-- ###### MODAL BOX HEADER Start ######-->
+                        <div class="slds-modal__header">
+                            <lightning:buttonIcon iconName="utility:close"
+                                                  onclick="{! c.closePAModel }"
+                                                  alternativeText="close"
+                                                  variant="bare-inverse"
+                                                  class="slds-modal__close"/>
+                        </div>
+                        <!--###### MODAL BOX BODY Part Start######-->
+                        <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                            <center>
+                                <lightning:button variant="brand" label="{!$Label.c.KM_Pricing_Availability}" title="Product Availability" class="slds-m-top_medium paButtonStyle" onclick="{!c.openPASearch}"></lightning:button><br/>
+                                <lightning:button variant="brand" label="{!$Label.c.KM_Quick_Order_Capture}" title="Quick Order Capture" class="slds-m-top_medium paButtonStyle" onclick="{!c.openQuickOrder}"></lightning:button>
+                            </center>
+                        </div>
+                        <!--###### MODAL BOX FOOTER Part Start ######-->
+                    </div>
+                </section>
+                <div class="slds-backdrop slds-backdrop_open"></div>
+            </aura:if>
+            <!-- END OF PRODUCT AVAILABILITY MODEL PANEL-->
+        </div>
+    </aura:if>
+    <!-- END OF CUSTOMER ORDER SECTION -->
+
+     <!--Line Items Table Starts-->
+    <aura:if isTrue="{!v.showLineItemSection}">
+        <c:KMOrderHistoryLineItems orderHeaderInfo="{!v.orderHeaderInfo}" allLineItems="{!v.allLineItems}" lineItems="{!v.lineItems}" accDetail="{!v.accDetail}" showSpinner="{!v.showSpinner}"/>
+    </aura:if>
+    <!--Line Items Table Ends-->
+
+    <!-- START OF PRODUCT AVAILABILITY SEARCH PANEL-->
+    <aura:if isTrue="{!v.showProductAvailability}">
+      <lightning:buttonIcon iconName="utility:back"  variant="border-filled"  title="{!$Label.c.KM_Back_To_Page}" onclick="{!c.backToContacts}" />
+        <center>
+            <h1 class="slds-page-header__title slds-m-right_small slds-align-middle slds-truncate"  title="{!$Label.c.KM_Pricing_Availability}">{!$Label.c.KM_Pricing_Availability}</h1>
+        </center>
+        <c:KMProductTab aura:id="productSearchCompId" orderButton="true" navigationButton="false" accountRec="{!v.accDetail}" contactRec="{!v.selectedContact}" shipToNumber="{!v.shipToNumbers}" selectedOption="{!v.selectedOption}" cusSearchInput="{!v.searchInput}" searchInput="{!v.productSearchInput}" />
+    </aura:if>
+    <!-- END OF PRODUCT AVAILABILITY SEARCH PANEL-->
+
+    <!-- START OF QUICK ORDER CAPTURE PANEL-->
+    <aura:if isTrue="{!v.showQuickOrderCapture}">
+        <lightning:buttonIcon iconName="utility:back"  variant="border-filled"  title="Back To Page" onclick="{!c.backToQuickContacts}" />
+        <c:KMQuickOrderForm accountRec="{!v.accDetail}" contactRec="{!v.selectedContact}" selectedOption="{!v.selectedOption}" searchInput="{!v.searchInput}"/>
+    </aura:if>
+    <!-- END OF QUICK ORDER CAPTURE PANEL-->
+
+    <!-- START SPINNER PANEL-->
+    <aura:if isTrue="{!v.showSpinner}">
+        <div class="demo-only demo-only demo-only_viewport demo--inverse" style="height:6rem">
+            <div class="slds-spinner_container slds-is-fixed">
+                <div role="status" class="slds-spinner slds-spinner_medium">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+    <!-- END SPINNER PANEL-->
+
+</aura:component>

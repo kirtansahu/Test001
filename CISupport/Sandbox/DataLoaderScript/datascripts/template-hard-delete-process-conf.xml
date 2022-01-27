@@ -1,0 +1,49 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+<bean id="deleteObjects"
+          class="com.salesforce.dataloader.process.ProcessRunner"
+          singleton="false">
+        <description>Deletes all AOP records from the extract file.</description>
+        <property name="name" value="_OBJECT_Delete"/>
+        <property name="configOverrideMap">
+            <map>
+			    <entry key="sfdc.endpoint" value="https://_ORGSERVER_.salesforce.com"/>
+                <entry key="sfdc.username" value="_USERNAME_"/>
+                <entry key="sfdc.password" value="_ENCRYPTED_PASSWORD_"/>
+				<entry key="process.encryptionKeyFile" value="_ENCRYPTION_KEY_FILE_"/>
+                <entry key="sfdc.debugMessages" value="true"/>
+                <entry key="sfdc.debugMessagesFile" value="_DEBUG_MSG_FILE_"/>
+
+       
+                <entry key="sfdc.timeoutSecs" value="600"/>
+		        <entry key="sfdc.noCompression" value="false"/>
+				<entry key="sfdc.enableRetries" value="true"/>
+				<entry key="sfdc.maxRetries" value="3"/>
+				<entry key="sfdc.minRetrySleepSecs" value="2"/>
+				<entry key="sfdc.loadBatchSize" value="200"/>
+				<entry key="sfdc.bulkApiCheckStatusInterval" value="10000"/>
+                
+				
+				<entry key="process.operation" value="delete"/>
+                <entry key="dataAccess.type" value="csvRead"/>
+                <entry key="sfdc.entity" value="_OBJECT_"/>
+                <entry key="dataAccess.name" value="_DATA_FILENAME_"/>
+				
+				
+		
+                <entry key="sfdc.extractionRequestSize" value="1000"/>
+                <entry key="process.mappingFile" value="_MAPPING_FILE_"/>
+                <entry key="process.outputSuccess" value="_OUTPUT_SUCCESS_FILE_"/>
+                <entry key="process.outputError" value="_OUTPUT_ERROR_FILE_"/>
+
+			   
+               	<entry key="process.enableLastRunOutput" value="false"/>
+				<entry key="sfdc.useBulkApi" value="true"/>
+				
+				<entry key="sfdc.proxyHost" value="_PROXY_HOST_"/>
+                <entry key="sfdc.proxyPort" value="_PROXY_PORT_"/>
+			
+            </map>
+        </property>
+    </bean>
+</beans>

@@ -1,0 +1,31 @@
+<apex:page showHeader="false" sidebar="false">
+    <apex:includeScript value="{!$Resource.JQs + '/jquery-2.2.2.min.js'}"/>
+    <apex:includeScript value="{!$Resource.JQs + '/sweetalert.min.js'}"/>
+    <style>
+    .swal-modal {
+        width: 90% !important;
+        height: 90% !important;
+    }
+    .swal-text{
+        color : red !important;
+        width: 90% !important;
+        font-weight: 800 !important;
+        font-size: 1.875rem !important;
+        text-align : center !important;
+        margin-top : 5% !important;
+    }
+    </style>
+    
+    <script>
+    window.onload = function() {
+        swal({
+            title: "Warning",
+            text: "{!$Label.ClassicExperianceWarning}",
+            icon: "warning",
+            buttons: false,
+            closeOnConfirm: false,
+            closeOnClickOutside: false,
+        })
+    };
+    </script>
+</apex:page>

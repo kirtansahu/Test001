@@ -1,0 +1,137 @@
+<apex:page controller="CPQ_MyApprovalCtr">
+    <apex:form >
+        <apex:pageMessages id="jserror" />
+        <style>
+            /* adds scroll bar to sidebar, kills some sfdc js that resizes the main body, and sets the scrollbars for the main iframe */
+            #sidebarDiv {
+            overflow-y:auto; /*optionally add scrollbar*/
+            overflow-x:hidden;
+            position:relative;/*fixes positioning in IE*/
+            }
+            #bodyTable {
+            height:1px !important;
+            width:auto !important;
+            }
+            #bodyCell{
+            overflow: auto;
+            -webkit-overflow-scrolling:touch;
+            position:relative;
+            }
+            #edit_quote {
+            overflow-y:scroll;
+            overflow-x:auto;
+            }
+        </style>
+        
+        <script type="text/javascript" src="/canvas/sdk/js/controller.js"></script>
+        <script type="text/javascript" src="/canvas/sdk/js/canvas-all.js"></script>
+        <script type="text/javascript">
+        var grbId = document.getElementById("bodyCell");
+        if(grbId != null) {
+            grbId.setAttribute("width","100%");
+        }
+        
+        function _cpq_resizeCanvas(){
+            var sfdcFooterId = '';
+            var divs = document.getElementsByTagName('div');
+            for (var i = 0; i < divs.length; i++) {
+                if (divs[i].className.indexOf('bPageFooter') != -1) {
+                    divs[i].style.display = 'none';
+                    if (!divs[i].id) {
+                        divs[i].id = sfdcFooterId;
+                    } else {
+                        sfdcFooterId = divs[i].id;
+                    }
+                    break;
+                }
+            }
+            
+            var sfdcHeader = (document.getElementById('AppBodyHeader')) ? document.getElementById('AppBodyHeader').offsetHeight : 0;
+            var topBorder = (document.getElementById('motifCurve')) ? document.getElementById('motifCurve').offsetHeight : 0;
+            var bmHeader = ('My Approvals') ? 65 : 0;
+            var bmFooter = 20;
+            var bottomBorder = (document.getElementById('bd_b')) ? document.getElementById('bd_b').offsetHeight : 20;
+            var sfdcFooter = (sfdcFooterId.length > 0) ? document.getElementById(sfdcFooterId).offsetHeight : 0;
+            var pageHeight = getPageHeight();
+            
+            var root = document.compatMode=='BackCompat' ? document.body : document.documentElement;
+            var isHorizontalScrollbar = root.scrollWidth >= root.clientWidth;
+            var sidebarDiv = document.getElementById('sidebarDiv');
+            var sidebarWidth = (sidebarDiv) ? document.getElementById('sidebarDiv').offsetWidth : 0;
+            var isCollapsible = document.getElementById('handlebarContainer');
+            var handleWidth = (isCollapsible) ? document.getElementById('handlebarContainer').offsetWidth : 0;
+            var borders = 60;
+            var scrollbarHeight = (isHorizontalScrollbar) ? 17 : 0;
+            var sidebarPadding = 4;
+            var winHeight = pageHeight - sfdcHeader - topBorder - bmHeader - bmFooter - bottomBorder - sfdcFooter - scrollbarHeight;
+            try {
+                var sidebarDivPadding = window.getComputedStyle(sidebarDiv, null).getPropertyValue('padding-top');
+                var sidebarCellPadding = window.getComputedStyle(document.getElementById('sidebarCell'), null).getPropertyValue('padding-top');
+                sidebarPadding = parseInt(sidebarDivPadding) + parseInt(sidebarCellPadding);
+            } catch (err) {}
+            
+            if (sidebarDiv) {
+                sidebarDiv.style.height = pageHeight - sfdcHeader - topBorder - bottomBorder - sfdcFooter - scrollbarHeight - sidebarPadding + 'px';
+            }
+            
+            if (isCollapsible) {
+                document.getElementById('handlebarContainer').style.height = pageHeight - sfdcHeader - topBorder - bottomBorder - sfdcFooter - scrollbarHeight - sidebarPadding - 5 + 'px';
+            }
+            
+            Sfdc.canvas.controller.resize({height: winHeight <= 450 ? 450 + "px" : winHeight + "px" });
+            
+        } // resize End
+        
+        var getPageHeight = function() {
+            return window.innerHeight || document.documentElement.clientHeight;
+        }
+        
+        // Tests the user agent
+        function isAgent(test) {
+            return navigator.userAgent.indexOf(test) != -1;
+        }
+        
+        // If in SF1 app on ios...
+        if (isAgent('Salesforce1') &&
+            (isAgent('iPhone') || isAgent('iPad')) &&
+            (isAgent('OS/8') || isAgent('OS 8') || isAgent('OS/9') || isAgent('OS 9'))) {
+            
+            // Redefine the getPageHeight function to return the landscape page height, even in portrait
+            //   This is because resizing to a smaller height if the height is already too big to fit on the page
+            //   appears to cause the page to disappear
+            getPageHeight = function() {
+                var pageHeight = window.innerHeight || document.documentElement.clientHeight;
+                var pageWidth = window.innerWidth || document.documentElement.clientWidth;
+                
+                if (pageHeight > pageWidth) {
+                    return pageWidth - 64;
+                } else {
+                    return pageHeight;
+                }
+            };
+        } else { // only bother calling resize if not in SF1 on iOS
+            
+            // Capture the orientation event of the parent window.
+            Sfdc.canvas.controller.subscribe(
+                {
+                    name : 'canvas.orientation',
+                    onData : function (event) {
+                        _cpq_resizeCanvas();
+                    }
+                }
+            );
+            
+            
+            window.onresize=_cpq_resizeCanvas;
+        }
+        </script>
+        
+        <span id="cpqCanvasAppWrapper">
+            <!-- Note: if you change the applicationName or id of the canvasApp, you MUST also change it in the above script or the resize method will NOT work -->
+            <apex:canvasApp onCanvasAppLoad="_cpq_resizeCanvas" scrolling="yes"
+                            applicationName="Oracle_CPQ_Cloud" width="100%" id="edit_quote"
+                            canvasId="oracle_cpq_oauth_canvas_id" 
+                            parameters="{redirect_url:'/commerce/buyside/commerce_manager.jsp&bmGetParams=bm_cm_process_id:{!cpqProcessId}&bmGetParams=from_hp:true&bmGetParams=_bm_trail_refresh_:true&bmGetParams=approverPage:Y&bmGetParams=_bm_trail_refresh_:true'}" />
+        </span>
+    </apex:form>
+</apex:page>

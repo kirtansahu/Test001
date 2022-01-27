@@ -1,0 +1,6 @@
+ACETGetAccessTokenScheduler ACETGATScheduler = new ACETGetAccessTokenScheduler();
+String HourCronExpr = '0 0 * * * ?';
+String HalfHourCronExpr = '0 30 * * * ?';
+System.schedule('ACET Get Access Token Hourly Job', HourCronExpr, ACETGATScheduler);
+System.schedule('ACET Get Access Token Half Hourly Job', HalfHourCronExpr, ACETGATScheduler);
+System.debug('Executed apex snippet');

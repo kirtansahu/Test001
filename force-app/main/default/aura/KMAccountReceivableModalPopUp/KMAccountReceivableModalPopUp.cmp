@@ -1,0 +1,61 @@
+<aura:component controller="KMAccountReceivable"  extends="c:KMBaseComponent">
+    <!-- START OF  ATTRIBUTES-->
+    <lightning:overlayLibrary aura:id="overlayLib"/>
+    <aura:attribute name="listofArextentions" type="list"/>
+    <aura:attribute name="InType" type="String"/>
+    <aura:attribute name="Incompany" type="String"/>
+    <aura:attribute name="InvoiceNo" type="String"/>
+    <aura:attribute name="loaded" type="boolean"/>
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <!-- END OF ATTRIBUTES--> 
+    <!-- TABLE CONTENT--> 
+    <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+        <thead>
+            <tr class="slds-text-title_caps">                  
+                <th scope="col">
+                    <div class="slds-truncate" title="{!$Label.c.KM_Order_Type}">{!$Label.c.KM_Order_Type}</div>
+                </th>
+                <th scope="col">
+                    <div class="slds-truncate" title="{!$Label.c.KM_Order}">{!$Label.c.KM_Order}</div>
+                </th>
+                <th scope="col">
+                    <div class="slds-truncate" title="{!$Label.c.KM_Company}">{!$Label.c.KM_Company}</div>
+                </th>                   
+            </tr>
+        </thead>
+        <tbody>
+            <aura:if isTrue="{!v.listofArextentions.length == 0}">
+                <tr>
+                    <td colspan="999" data-label="Nodata" scope="col" style="text-align: center;">
+                        {!$Label.c.KM_No_Records_found}
+                    </td>
+                </tr>
+            </aura:if>
+            <!--### display all records of listofArextentions attribute by aura:iteration ###-->
+            <aura:iteration items="{!v.listofArextentions}" var="acc" indexVar="count" >
+                <tr>
+                    <td>
+                        <div class="slds-truncate">{!acc.orderType}</div>
+                    </td>
+                    <td>
+                        <div class="slds-truncate">{!acc.orderNumber}</div>
+                    </td>
+                    <td>
+                        <div class="slds-truncate">{!acc.orderCompany}</div>
+                    </td>
+                </tr>
+            </aura:iteration>
+        </tbody>
+    </table>
+    <aura:if isTrue="{!v.loaded}">
+        <div class="demo-only demo-only demo-only_viewport demo--inverse" style="height:6rem">
+            <div class="slds-spinner_container slds-is-fixed">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner--brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+</aura:component>

@@ -1,0 +1,23 @@
+.THIS .custom-header-padding{
+    padding-left: 0.78rem;
+}
+.THIS .custom_radio_required .slds-form-element__legend{
+    display: none;
+}
+.THIS .custom-disable-option{
+    color: rgb(176, 173, 171);
+}
+.THIS .slds-dropdown_fluid{
+    max-height: 200px !important;
+}
+.THIS .custom-label-alignment{
+    margin-top: 15px;
+}
+.THIS .custom-combobox-alignment{
+    padding-left: 0px;
+    padding-right: 0px;
+    margin-left: -13px;
+}
+.THIS .strikeout-unitprice{
+    text-decoration: line-through;
+}

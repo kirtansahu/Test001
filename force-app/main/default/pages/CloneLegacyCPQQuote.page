@@ -1,0 +1,3 @@
+<apex:page standardController="BigMachines__Quote__c" extensions="CloneLegacyCPQQuoteController" action="{!onLoad}" lightningStylesheets="true">
+    <apex:pageMessages />
+</apex:page>

@@ -1,0 +1,17 @@
+<aura:component Controller="NewOpportunity" implements="flexipage:availableForRecordHome,force:hasRecordId,lightning:actionOverride" access="global"  extends="c:BaseComponent">
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    
+    <aura:attribute name="record" type="Object"/>
+    <aura:attribute name="recordId" type="String"/>
+    <aura:attribute name="IsNotBP" type="Boolean" default="false"/>
+    <aura:if isTrue="{!v.IsNotBP}">
+        <header class="slds-modal__header">
+            <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Renewal Process</h2>    
+        </header>
+        <br/>        
+        <br/>
+        <div style="text-align: right;">
+            <lightning:button variant="brand" label="Back" onclick="{! c.back}" />
+        </div>
+    </aura:if>
+</aura:component>

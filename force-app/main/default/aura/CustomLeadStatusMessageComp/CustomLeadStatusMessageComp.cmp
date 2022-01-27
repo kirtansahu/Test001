@@ -1,0 +1,30 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" 
+                access="global"
+                extends="c:BaseComponent">
+     <!--Attributes-->
+    <aura:attribute name="recordId" type="String"/>
+    <aura:attribute name="leadStatus" type="String"/>
+    
+    <aura:if isTrue="{!(v.leadStatus != null &amp;&amp; v.leadStatus != '' &amp;&amp;  v.leadStatus != undefined &amp;&amp; (v.leadStatus == 'Converted'||v.leadStatus == 'Completed'||v.leadStatus == 'NO_ACCESS')?true:false)}">
+        <article class="slds-card">
+            <div class="slds-card__body slds-card__body_inner cStatusMessage">
+                <aura:if isTrue="{!v.leadStatus == 'Converted'}">
+                    {!$Label.c.LeadConvertStatusMsg}
+                </aura:if>
+                <aura:if isTrue="{!v.leadStatus == 'Completed'}">
+                    {!$Label.c.LeadCompleteStatusMsg}
+                </aura:if>
+                <aura:if isTrue="{!v.leadStatus == 'NO_ACCESS'}">
+                    {!$Label.c.LeadNoAccessErrorMsg}
+                </aura:if>
+            </div>
+        </article>
+    </aura:if>
+    
+    <lightning:recordEditForm onload="{!c.handleLoad}"
+                              onerror="{!c.handleOnError}"
+                              recordId="{!v.recordId}"
+                              objectApiName="Lead">
+       <lightning:inputField fieldName="Status" class="slds-hide"/>
+    </lightning:recordEditForm>
+</aura:component>

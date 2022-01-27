@@ -1,0 +1,8 @@
+<apex:page showHeader="false" sidebar="false" >
+<script>
+   var url = "{!$CurrentPage.URL}";
+   sessionStorage.setItem('refUrl',url);
+   //alert('redirect ' + url);
+   location.replace('/lightning');
+</script>
+</apex:page>

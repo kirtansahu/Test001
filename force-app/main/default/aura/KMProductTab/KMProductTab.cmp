@@ -1,0 +1,361 @@
+<!--
+@ author: Rambabu gadde
+@ Date:   01/06/2020
+@ feature: Korean Mobility
+@ Description : Component for Product & Price Avaivablity
+-->
+<aura:component controller="KMProductAvailibility" extends="c:KMBaseComponent" >
+    <!-- Product TAb Attributes -->
+    <aura:attribute name="searchInput" type="String"/>
+    <aura:attribute name="shipToNumber" type="String"/>
+    <aura:attribute name="loaded" type="boolean"/>
+    <aura:attribute name="listofproducts" type="Object[]"/>
+    <aura:attribute name="ProductTable" type="boolean" default="false" access="private"/>
+    <aura:attribute name="orderButton" type="boolean" default="false"/>
+    <aura:attribute name="navigationButton" type="boolean" default="true"/>
+    <aura:attribute name="selectedTabsoft" type="string" default="SKU" access="private"
+                    description="Use for show/hide arraow sign on header based on conditions"/>
+    <aura:attribute name="sortAsc" type="boolean"  access="private" />
+    <aura:attribute name="Productlength" type="integer"/>
+    <aura:attribute name="addToButton" type="boolean" default="true"/>
+    <aura:attribute name="accountRec" type="account" description=""/>
+    <aura:attribute name="contactRec" type="contact" description=""/>
+    <aura:attribute name="orderDetails" type="Object"/>
+    <aura:attribute name="quickOrderData" type="Object" description=""/>
+    <aura:attribute name="showShipToPopup" type="boolean" default="false"/>
+    <aura:attribute name="oldShipToNumber" type="string"/>
+    <aura:attribute name="newShipToNumber" type="string"/>
+    <aura:attribute name="oldShipToName" type="string"/>
+    <aura:attribute name="showReorderPATable" type="Boolean" default="false" />
+    <aura:attribute name="showSearchBox" type="Boolean" default="true" />
+    <aura:attribute name="savedOrderDetails" type="Object" />
+    <aura:attribute name="showOrderTypePopup" type="Boolean" default="false" />
+    <aura:attribute name="orderTypes" type="Map" access="private" default="{'SO': 'SO', 'T9' : 'T9'}"/>
+    <aura:attribute name="oldOrderType" type="String"/>
+    <aura:attribute name="allRecords" type="Object[]"/>
+    <aura:attribute name="selectedOption" type="String"/>
+    <aura:attribute name="cusSearchInput" type="String"/>
+
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:registerEvent name="KMAddSelectedItemsToCart" type="c:KMAddSelectedItemsToCart"/>
+
+    <aura:method name="loadProductsSearch" action="{!c.doProductSearch}" description="" access="public">
+
+    </aura:method>
+
+    <!-- START OF THE PRODUCT TAB SEARCH BOX SECTION-->
+    <aura:if isTrue="{!v.showSearchBox}">
+        <div class=" slds-grid slds-wrap">
+            <div class="slds-col slds-size_10-of-12 slds-p-left_x-small slds-medium-size--1-of-2 slds-large-size--10-of-12 ">
+                <span onkeypress="{!c.handleSearchInputKeyPress}">
+                    <lightning:input label="" value="{!v.searchInput}" placeholder="{!$Label.c.KM_Product_Search_Place_Holder}" onchange="{!c.serachButton}" />
+                </span>
+            </div>
+
+            <div class="slds-col slds-size_2-of-12 slds-p-horizontal_medium">
+                <div class="slds-p-top_medium">
+                    <lightning:button label="{!$Label.c.KM_Search}" variant="brand" title="{!$Label.c.KM_Search}"
+                                      onclick="{!c.searchProducts}" disabled="true" aura:id="SearchButton"/>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+    <!-- END OF THE PRODUCT TAB SEARCH BOX SECTION-->
+
+    <!-- START OF THE PRODUCT TAB TABLE-->
+
+    <aura:if isTrue="{!v.ProductTable}">
+        <div class=" slds-grid">
+            <div class="slds-col slds-size_12-of-12 slds-m-top_x-small"
+                 aura:id="CustomerOrderTable">
+                <div class="slds-card__body slds-card__body_inner">
+                    <div class="" style="height:300px font-size: small;">
+                        <div class="slds-scrollable_y" style="height:80%;">
+                            <table class="slds-table slds-table_bordered shiptotable" style="table-layout: fixed;">
+                                <aura:if isTrue="{!v.orderButton}">
+                                    <colgroup>
+                                        <col style="width:11%"/>
+                                        <col style="width:10%"/>
+                                        <col style="width:10%"/>
+                                        <col style="width:8%"/>
+                                        <col style="width:10%"/>
+                                        <col style="width:10%"/>
+                                        <col style="width:10%"/>
+                                        <col style="width:10%"/>
+                                        <col style="width:10%"/>
+                                        <col style="width:13%"/>
+                                    </colgroup>
+                                </aura:if>
+                                <aura:if isTrue="{!v.navigationButton}">
+                                    <colgroup>
+                                        <col style="width:11%"/>
+                                        <col style="width:11%"/>
+                                        <col style="width:11%"/>
+                                        <col style="width:8%"/>
+                                        <col style="width:11%"/>
+                                        <col style="width:13%"/>
+                                        <col style="width:13%"/>
+                                        <col style="width:13%"/>
+                                        <col style="width:6%"/>
+                                    </colgroup>
+                                </aura:if>
+                                <thead>
+                                    <tr class="">
+                                        <th scope="col" class="slds-is-sortable" id="SKU"  onclick="{!c.sortBy}">
+                                            <div class="slds-truncate slds-cell-fixed"  title="Product#">
+                                                <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour">
+                                                    <span class="slds-assistive-text">Sort</span>
+                                                    <span class="slds-truncate" title="Product#" style="font-size: 11px;">{!$Label.c.KM_Product}</span>
+                                                    <aura:if isTrue="{!and(v.sortAsc , v.selectedTabsoft == 'SKU')}">&nbsp;&#9660; </aura:if>
+                                                    <aura:if isTrue="{!and(!v.sortAsc,v.selectedTabsoft == 'SKU' )}"> &nbsp;&#9650; </aura:if>
+                                                </a>
+                                            </div>
+                                        </th>
+                                        <th scope="col" class="slds-is-sortable" id="searchtext"  onclick="{!c.sortBy}">
+                                            <div class="slds-truncate slds-cell-fixed"  title="sortBy3rdParty">
+                                                <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour">
+                                                    <span class="slds-assistive-text">Sort</span>
+                                                    <span class="slds-truncate" title="3rd party Product#" style="font-size: 11px;">{!$Label.c.KM_3rd_Parth_Product}</span>
+                                                    <aura:if isTrue="{!and(v.sortAsc, v.selectedTabsoft == 'searchtext')}">&nbsp;&#9660; </aura:if>
+                                                    <aura:if isTrue="{!and(!v.sortAsc,v.selectedTabsoft == 'searchtext' )}"> &nbsp;&#9650; </aura:if>
+                                                </a>
+                                            </div>
+                                        </th>
+                                        <th scope="col" class="slds-is-sortable" id="SKUdesc1"  onclick="{!c.sortBy}">
+                                            <div class="slds-truncate slds-cell-fixed"  title="Product Name">
+                                                <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour">
+                                                    <span class="slds-assistive-text">Sort</span>
+                                                    <span class="slds-truncate" title="Product Name" style="font-size: 11px;">{!$Label.c.KM_Product_Name}</span>
+                                                    <aura:if isTrue="{!and(v.sortAsc , v.selectedTabsoft == 'SKUdesc1')}">&nbsp;&#9660; </aura:if>
+                                                    <aura:if isTrue="{!and(!v.sortAsc,v.selectedTabsoft == 'SKUdesc1' )}"> &nbsp;&#9650; </aura:if>
+                                                </a>
+                                            </div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed slds-p-top_x-small; "  title="Unit Size" style="font-size: 11px;">{!$Label.c.KM_UnitSize}</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed slds-p-top_x-small; " title="Availability Date" style="font-size: 11px;">{!$Label.c.KM_AvailabilityDate}</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed slds-p-top_x-small; " title="Qty Available" style="font-size: 11px;">{!$Label.c.KM_Qty_Available}</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Branch/plant" style="font-size: 11px;">{!$Label.c.KM_Branch_Plant}</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed" title="List Price" style="font-size: 11px;">{!$Label.c.KM_List_Price}</div>
+                                        </th>
+                                        <aura:if isTrue="{!v.orderButton}">
+                                            <th class="" scope="col">
+                                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Customer Price" style="font-size: 11px;">{!$Label.c.KM_Customer_Price}</div>
+                                            </th>
+                                        </aura:if>
+                                        <th class="" scope="col">
+                                            <aura:if isTrue="{!v.orderButton}">
+                                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Order" style="font-size: 11px;">{!$Label.c.KM_Order_Button}</div>
+                                            </aura:if>
+                                            <aura:if isTrue="{!v.navigationButton}">
+                                                <div class="slds-truncate slds-cell-fixed" title="Navigation"></div>
+                                            </aura:if>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <aura:if isTrue="{!v.listofproducts.length == 0}">
+                                        <tr >
+                                            <td colspan="999" data-label="Nodata" scope="col" style="text-align: center;">
+                                                {!$Label.c.KM_No_Records_found}
+                                            </td>
+                                        </tr>
+                                    </aura:if>
+                                    <aura:iteration items="{!v.listofproducts}" var="acc" indexVar="count">
+                                        <tr class="slds-hint-parent">
+                                            <td data-label="ShipTo" scope="col" data-id="{!acc.SKU}" onclick="{!c.submit }" >
+                                                <div class="slds-truncate" >{!acc.SKU}</div>
+                                            </td>
+                                            <td data-label="ST Alpha Name" scope="col" data-id="{!acc.SKU}" onclick="{!c.submit }" >
+                                                <aura:if isTrue="{!v.orderButton}">
+                                                    <div class="slds-truncate">{!acc.searchtext} </div>
+                                                </aura:if>
+                                                <aura:if isTrue="{!v.navigationButton}">
+                                                    <div class="slds-truncate" >{!acc.searchtext} </div>
+                                                </aura:if>
+                                            </td>
+                                            <td data-label="ST Address" scope="col" data-id="{!acc.SKU}" onclick="{!c.submit }" >
+                                                <aura:if isTrue="{!v.orderButton}">
+                                                    <div class="slds-truncate">{!acc.SKUdesc1} </div>
+                                                </aura:if>
+                                                <aura:if isTrue="{!v.navigationButton}">
+                                                    <div class="slds-truncate" >{!acc.SKUdesc1} </div>
+                                                </aura:if>
+
+                                            </td>
+                                            <td data-label="BillTo" scope="col" data-id="{!acc.SKU}" onclick="{!c.submit }" >
+                                                <aura:if isTrue="{!v.orderButton}">
+                                                    <div class="slds-truncate">{!acc.SKUdesc2} </div>
+                                                </aura:if>
+                                                <aura:if isTrue="{!v.navigationButton}">
+                                                    <div class="slds-truncate" >{!acc.SKUdesc2}</div>
+                                                </aura:if>
+                                            </td>
+                                            <td data-label="BT Name" scope="col" data-id="{!acc.SKU}" onclick="{!c.submit }" >
+                                                <div class="slds-truncate" >{!acc.AVAILABILITYDATE}</div>
+                                            </td>
+                                            <td data-label="BT Address" scope="col" data-id="{!acc.SKU}" onclick="{!c.submit }" >
+                                                <div class="slds-truncate" >{!acc.AVAILABLEQUANTITY}</div>
+                                            </td>
+                                            <td data-label="BT Address" scope="col" data-id="{!acc.SKU}" onclick="{!c.submit }" >
+                                                <div class="slds-truncate" >{!acc.BRANCHPLANT}</div>
+                                            </td>
+                                            <td data-label="BT Address" scope="col" data-id="{!acc.SKU}" onclick="{!c.submit }" >
+                                                <div class="slds-truncate" >
+                                                    <p><lightning:formattedNumber value="{!acc.Baseunitprice}" style="currency" currencyCode="{!acc.currencycode}"  currencyDisplayAs="code" minimumFractionDigits="0" maximumFractionDigits="0" /></p>
+                                                </div>
+                                            </td>
+                                            <aura:if isTrue="{!v.orderButton}">
+                                                <td data-label="BT Address" scope="col" data-id="{!acc.SKU}" onclick="{!c.submit }" >
+                                                    <p><lightning:formattedNumber value="{!acc.customerPrice}" style="currency" currencyCode="{!acc.koreanCurrencyCode}" currencyDisplayAs="code" minimumFractionDigits="0" maximumFractionDigits="0" /></p>
+                                                </td>
+                                            </aura:if>
+                                            <td data-label="">
+                                                <div class="slds-truncate" >
+                                                    <aura:if isTrue="{!v.navigationButton}">
+                                                        <a onclick="{!c.submit}" data-id="{!acc.SKU}">
+                                                            <lightning:buttonIcon iconName="utility:chevronright"  variant="border-filled" title="Details" />
+                                                        </a></aura:if>
+                                                    <aura:if isTrue="{!v.orderButton}">
+                                                        <lightning:button label="{!$Label.c.KM_Add_to_Order}" name="{!acc.SKU}" variant="brand" aura:id="prodcutids" onclick="{!c.addToOrders}" tabindex="{!count}" disabled="{!acc.enableButton}"/>
+                                                    </aura:if>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </aura:iteration>
+                                </tbody>
+                            </table>
+                            <center>
+                                <aura:if isTrue="{!and(v.Productlength>=100, 2000>v.Productlength)}">
+                                  <!-- <lightning:button  variant="base" onclick="{!c.viewMoreRecords}" />-->
+                                    <lightning:button variant="base" label="{!$Label.c.KM_More_Records}" title="{!$Label.c.KM_More_Records}" onclick="{! c.viewMoreRecords }"/>
+                                </aura:if>
+                            </center></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+
+    <!-- END OF THE PRODUCT TAB TABLE-->
+
+    <!--Reorder PA Table-->
+    <aura:if isTrue="{!v.showReorderPATable}">
+        <div class=" slds-grid">
+            <div class="slds-col slds-size_12-of-12 slds-m-top_x-small"
+                 aura:id="CustomerOrderTable">
+                <div class="slds-card__body slds-card__body_inner">
+                    <div class="" style="height:300px; font-size:small">
+                        <div class="slds-scrollable_y" style="height:80%;">
+                            <table class="slds-table slds-line-height_reset slds-table_bordered  slds-table_cell-buffer slds-table--header-fixed shiptotable">
+                                <colgroup>
+                                    <col style="width:16%"/>
+                                    <col style="width:14%"/>
+                                    <col style="width:12%"/>
+                                    <col style="width:10%"/>
+                                    <col style="width:10%"/>
+                                    <col style="width:10%"/>
+                                    <col style="width:14%"/>
+                                    <col style="width:14%"/>
+                                </colgroup>
+                                <thead>
+                                    <tr class="slds-line-height_reset">
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed slds-p-top_x-small; " title="Product Number" style="font-size: small;">{!$Label.c.KM_Product}</div>
+                                        </th>
+                                        <th class="slds-is-sortable" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed slds-p-top_x-small; " title="3rd party Product" style="font-size: small;">{!$Label.c.KM_3rd_Parth_Product}</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed slds-p-top_x-small; " title="Availability Date" style="font-size: small;">{!$Label.c.KM_AvailabilityDate}</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed slds-p-top_x-small; " title="Qty Ordered" style="font-size: small;">Qty Ordered</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed slds-p-top_x-small; " title="Qty Available" style="font-size: small;">{!$Label.c.KM_Qty_Available}</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Branch/Plant" style="font-size: small;">{!$Label.c.KM_Branch_Plant}</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Customer Price" style="font-size: small;">{!$Label.c.KM_Customer_Price}</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Order" style="font-size: small;">{!$Label.c.KM_Order_Button}</div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <aura:iteration items="{!v.listofproducts}" var="RO" indexVar="count">
+                                        <tr class="slds-hint-parent">
+                                            <td data-label="Product Name">
+                                                <div class="slds-truncate" >{!RO.ProductName}<br/><b>Product#:</b>{!RO.ProductNo}<br/><b>Unit Size:</b>{!RO.UnitSize}</div>
+                                            </td>
+                                            <td data-label="3rd party Product">
+                                                <div>-</div>
+                                            </td>
+                                            <td data-label="Availibilty Date">
+                                                <div class="slds-truncate" >{!RO.AVAILABILITYDATE}</div>
+                                            </td>
+                                            <td data-label="Qty Ordered">
+                                                <div class="slds-truncate" >{!RO.Quantity}</div>
+                                            </td>
+                                            <td data-label="Qty Available">
+                                                <div class="slds-truncate" >{!RO.AVAILABLEQUANTITY}</div>
+                                            </td>
+                                            <td data-label="Branch/Plant">
+                                                <div class="slds-truncate" >{!RO.BRANCHPLANT}</div>
+                                            </td>
+                                            <td data-label="Customer Price">
+                                                <div class="slds-truncate" >{!RO.CurrencyCode}&nbsp;{!RO.CustomerPrice}</div>
+                                            </td>
+                                            <td data-label="" class="slds-p-around_none">
+                                                <div class="" >
+                                                    <lightning:button label="{!$Label.c.KM_Add_to_Order}" name="{!count}" variant="brand" aura:id="prodcutids" onclick="{!c.reorderProduct}" tabindex="{!count}"/>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </aura:iteration>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+    <!--Reorder PA Table Ends-->
+
+    <!--START OF THE SPINNER PANEL-->
+
+    <aura:if isTrue="{!v.loaded}">
+        <div class="demo-only demo-only demo-only_viewport demo--inverse" style="height:6rem">
+            <div class="slds-spinner_container slds-is-fixed">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner--brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+
+    <!-- END OF THE SPINNER PANEL -->
+
+    <!-- Popup for validation-->
+    <c:KMShipToNumValidation showShipToPopup="{!v.showShipToPopup}"
+                             oldShipToNumber="{!v.oldShipToNumber}" shipToName="{!v.oldShipToName}"
+                             orderDetails="{!v.orderDetails}" orderedProducts="{!v.quickOrderData}"
+                             showOrderTypePopup="{!v.showOrderTypePopup}" savedOrderDetails="{!v.savedOrderDetails}"/>
+    <!-- Popup for validation ends-->
+
+</aura:component>

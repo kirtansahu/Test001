@@ -1,0 +1,793 @@
+<!--
+@ author: Rambabu gadde
+@ Date:   17/04/2020
+@ feature: Korean Mobility
+@ Description : Component for Account Receivable
+-->
+<aura:component controller="KMAccountReceivable" extends="c:KMBaseComponent">
+    <!-- Account Receivale Search Section-->
+    <aura:attribute name="searchInput" type="String"/>
+    <aura:attribute name="listofShipto" type="Account[]"/>
+    <aura:attribute name="loaded" type="Boolean" default="false" />
+    <aura:attribute name="showSearch" type="Boolean" default="true"/>
+    <aura:attribute name="showAccountTable" type="Boolean" default="false"/>
+    <aura:attribute name="sortAsc" type="Boolean" default="true"/>
+    <aura:attribute name="sortField" type="String" default="Account_Alpha_Name__c"/>
+    <aura:attribute name="selectedTabsoft" type="String"
+                    description="Use for show/hide arraow sign on header based on conditions"/>
+    <aura:attribute name="Accountlength" type="integer"/>
+    <aura:attribute name="AccsortAsc" type="boolean"  />
+    <aura:attribute name="AccselectedTabsoft1" type="string" default="Account_Alpha_Name__c"
+                    description="Use for show/hide arraow sign on header based on conditions"/>
+    <!-- Account Receivable Search End Section-->
+    <!--START OF AR HEADER PAGE-->
+    <aura:attribute name="Account" type="Account"/>
+    <aura:attribute name="ARDetails" type="Object"/>
+    <aura:attribute name="InvoiceLists" type="list"/>
+    <aura:attribute name="unfilterdata" type="list"/>
+    <aura:attribute name="selectedTabsoft1" type="string" default="invoiceDate"
+                    description="Use for show/hide arraow sign on header based on conditions"/>
+    <aura:attribute name="sortAsc2" type="boolean"/>
+    <aura:attribute name="fromDate" type="Date"   />
+    <aura:attribute name="toDate" type="Date"  />
+    <aura:attribute name="SearchBoxInputs" type="String"/>
+    <aura:attribute name="picklisvalues" type="list" default="['SO','SU','T9']"/>
+    <aura:attribute name="InvoiceNumbers" type="String"/>
+    <aura:attribute name="Orderno" type="String"/>
+    <aura:attribute name="Ordertypes" type="String"/>
+    <aura:attribute name="customerPo" type="String"/>
+    <aura:attribute name="orderdate" type="String"/>
+    <aura:attribute name="ArExtention" type="boolean" default="true"/>
+    <aura:attribute name="ArPage2" type="boolean" default="false"/>
+    <aura:attribute name="SelectedOrderType" type="boolean"/>
+    <aura:attribute name="Selecteddate" type="boolean"/>
+    <aura:attribute name="Selectedvalue" type="boolean" default="true"/>
+    <aura:handler name="change" value="{!v.fromDate}" action="{!c.checkDateValue}"/>
+    <aura:handler name="change" value="{!v.toDate}" action="{!c.checkDateValue}"/>
+    <!-- END OF THE AR  Header PAGE SECTION-->
+    <!-- STRAT OF AR INVOICE DETAIL PAGE-->
+    <aura:attribute name="ARInvoicedetailsPage" type="boolean"/>
+    <aura:attribute name="ARInvoicedetails" type="list"/>
+    <aura:attribute name="unfilterInvoices" type="list"/>
+    <aura:attribute name="sortAsc1" type="boolean"  />
+    <aura:attribute name="selectedTabsoft2" type="string" default="OrderNum"
+                    description="Use for show/hide arraow sign on header based on conditions"/>
+    <aura:attribute name="InvoicetoDate" type="date"/>
+    <aura:attribute name="InvoicefromDate" type="date"/>
+    <aura:attribute name="InvoiceInputSearchBox" type="String"/>
+    <aura:attribute name="Invoiceinoutdisabled" type="boolean" default="true"/>
+    <aura:attribute name="InvoiceListSearchBox" type="boolean" default="true"/>
+    <aura:attribute name="InvoiceTexts" type="boolean" default="true"/>
+    <aura:attribute name="invoiceorderTypes" type="boolean"/>
+    <aura:attribute name="invoiceShipmentdates" type="boolean"/>
+    <aura:attribute name="option" type="String"/>
+    <aura:attribute name="listInvoiceType" type="String"/>
+    <aura:handler name="change" value="{!v.InvoicetoDate}" action="{!c.Invoicedatevalidation}"/>
+    <aura:handler name="change" value="{!v.InvoicefromDate}" action="{!c.Invoicedatevalidation}"/>
+    <!-- END OF AR InVOICE DETAIL PAGE-->
+    <lightning:overlayLibrary aura:id="overlayLib"/>
+    <!-- START OF ACCOUNTRECEIVABLE SEARCH SECTION-->
+    <aura:if isTrue="{!v.showSearch}">
+        <div class="slds-grid">
+            <div class="slds-col slds-size_10-of-12 slds-p-left_x-small">
+                <span onkeypress="{!c.handleSearchInputKeyPress}">
+                    <lightning:input value="{!v.searchInput}" placeholder="{!$Label.c.KM_AR_SearchPlaceHolder}" onchange="{!c.handleSearchInputChange}" />
+                </span>
+            </div>
+            <div class="slds-col slds-size_2-of-12 slds-p-horizontal_medium">
+                <lightning:button variant="brand" label="{!$Label.c.KM_Search}"
+                                  title="Search" class="slds-m-top_medium" disabled="true"
+                                  aura:id="searchButton" onclick="{!c.doSearch}" />
+            </div>
+        </div>
+    </aura:if>
+    <!--  END OF ACCOUNTRECEIVABLE SEARCH SECTION-->
+    <!-- STARAT OF ACCOUNTRECEIVABLE SEARCH TABLE-->
+    <aura:if isTrue="{!v.showAccountTable}">
+        <div class="slds-grid">
+            <div class="slds-col slds-size_12-of-12 slds-m-top_x-small" aura:id="CustomerOrderTable">
+                <div class="slds-card__body slds-card__body_inner">
+                    <div class="slds-table--header-fixed_container" style="height:300px font-size: small;">
+                        <div class="slds-scrollable_y" style="height:100%;">
+                            <table class="slds-table slds-line-height_reset slds-table_bordered  slds-table_cell-buffer slds-table--header-fixed shiptotable">
+                                <colgroup>
+                                    <col style="width:14%"/>
+                                    <col style="width:14%"/>
+                                    <col style="width:19%"/>
+                                    <col style="width:14%"/>
+                                    <col style="width:14%"/>
+                                    <col style="width:19%"/>
+                                    <col style="width:6%"/>
+                                </colgroup>
+                                <thead>
+                                    <tr class="slds-line-height_reset">
+                                        <th scope="col" class="slds-is-sortable" id="ERP_Account_Id__c"  onclick="{!c.sortByST}">
+                                            <div class="slds-truncate slds-cell-fixed"  title="ShipTo">
+                                                <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                    <span class="slds-assistive-text">Sort</span>
+                                                    <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_ShipTo}</span>
+                                                    <aura:if isTrue="{!and(v.AccsortAsc , v.AccselectedTabsoft1 == 'ERP_Account_Id__c')}">&nbsp;&#9660; </aura:if>
+                                                    <aura:if isTrue="{!and(!v.AccsortAsc, v.AccselectedTabsoft1 == 'ERP_Account_Id__c')}"> &nbsp;&#9650; </aura:if>
+                                                </a>
+                                            </div>
+                                        </th>
+                                        <th scope="col" class="slds-is-sortable" id="Account_Alpha_Name__c"  onclick="{!c.sortByST}">
+                                            <div class="slds-truncate slds-cell-fixed"  title="ST Alpha Name">
+                                                <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                    <span class="slds-assistive-text">Sort</span>
+                                                    <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_ST_Alpha_Name}</span>
+                                                    <aura:if isTrue="{!and(v.AccsortAsc , v.AccselectedTabsoft1 == 'Account_Alpha_Name__c')}">&nbsp;&#9660; </aura:if>
+                                                    <aura:if isTrue="{!and(!v.AccsortAsc, v.AccselectedTabsoft1 == 'Account_Alpha_Name__c')}"> &nbsp;&#9650; </aura:if>
+                                                </a>
+                                            </div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed slds-p-top_x-small; " title="ST Address" style="font-size: small; margin-left: 6px;">{!$Label.c.KM_ST_Address}</div>
+                                        </th>
+                                        <th scope="col" class="slds-is-sortable" id="Primary_Bill_To__r.ERP_Account_Id__c"  onclick="{!c.sortByST}">
+                                            <div class="slds-truncate slds-cell-fixed"  title="BillTO#">
+                                                <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                    <span class="slds-assistive-text">Sort</span>
+                                                    <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Bill_To}</span>
+                                                    <aura:if isTrue="{!and(v.AccsortAsc , v.AccselectedTabsoft1 == 'Primary_Bill_To__r.ERP_Account_Id__c')}">&nbsp;&#9660; </aura:if>
+                                                    <aura:if isTrue="{!and(!v.AccsortAsc, v.AccselectedTabsoft1 == 'Primary_Bill_To__r.ERP_Account_Id__c')}"> &nbsp;&#9650; </aura:if>
+                                                </a>
+                                            </div>
+                                        </th>
+                                        <th scope="col" class="slds-is-sortable" id="Primary_Bill_To__r.Name"  onclick="{!c.sortByST}">
+                                            <div class="slds-truncate slds-cell-fixed"  title="BT Name">
+                                                <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                    <span class="slds-assistive-text">Sort</span>
+                                                    <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_BT_Name}</span>
+                                                    <aura:if isTrue="{!and(v.AccsortAsc , v.AccselectedTabsoft1 == 'Primary_Bill_To__r.Name')}">&nbsp;&#9660; </aura:if>
+                                                    <aura:if isTrue="{!and(!v.AccsortAsc, v.AccselectedTabsoft1 == 'Primary_Bill_To__r.Name')}"> &nbsp;&#9650; </aura:if>
+                                                </a>
+                                            </div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate nonsortablecol slds-cell-fixed" title="BT Address" style="font-size: small;margin-left: 6px;">{!$Label.c.KM_BT_Address}</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate slds-cell-fixed" title="Navigation"></div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <aura:if isTrue="{!v.listofShipto.length == 0}">
+                                        <tr >
+                                            <td colspan="999" data-label="Nodata" scope="col" style="text-align: center;">
+                                                {!$Label.c.KM_No_Records_found}
+                                            </td>
+                                        </tr>
+                                    </aura:if>
+                                    <aura:iteration items="{!v.listofShipto}" var="acc" indexVar="count">
+                                        <tr class="slds-hint-parent" data-id="{!acc.ERP_Account_Id__c}" onclick="{!c.openAccountDetails}">
+                                            <td data-label="ShipTo" scope="col">
+                                                <div class="slds-truncate" >{!acc.ERP_Account_Id__c}</div>
+                                            </td>
+                                            <td data-label="ST Alpha Name" scope="col">
+                                                <div class="slds-truncate" >{!acc.Account_Alpha_Name__c}</div>
+                                            </td>
+                                            <td data-label="ST Address" scope="col">
+                                                <div class="slds-truncate" >{!acc.Address_1__c}&nbsp;{!acc.State_f__c}&nbsp;{!acc.City_f__c}<br/>
+                                                    {!acc.Address_3__c}&nbsp;{!acc.Address_2__c}<br/>{!acc.Zip_Postal_Code_f__c}&nbsp;{!acc.Country__c}
+                                                </div>
+                                            </td>
+                                            <td data-label="BillTo" scope="col">
+                                                <div class="slds-truncate" >{!acc.Primary_Bill_To__r.ERP_Account_Id__c}</div>
+                                            </td>
+                                            <td data-label="BT Name" scope="col">
+                                                <div class="slds-truncate" >{!acc.Primary_Bill_To__r.Name}</div>
+                                            </td>
+                                            <td data-label="BT Address" scope="col">
+                                                <div class="slds-truncate" >{!acc.Primary_Bill_To__r.Address_1__c}&nbsp;{!acc.Primary_Bill_To__r.State_f__c}&nbsp;{!acc.Primary_Bill_To__r.City_f__c}<br/>{!acc.Primary_Bill_To__r.Address_3__c}&nbsp;{!acc.Primary_Bill_To__r.Address_2__c}<br/>{!acc.Primary_Bill_To__r.Zip_Postal_Code_f__c}&nbsp;{!acc.Primary_Bill_To__r.Country__c}</div>
+                                            </td>
+                                            <td data-label="Contact">
+                                                <div class="slds-truncate" >
+                                                    <a onclick="{!c.openAccountDetails}" data-id="{!acc.ERP_Account_Id__c}">
+                                                        <lightning:buttonIcon iconName="utility:chevronright"  variant="border-filled"
+                                                                              title=" Account Details" />
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </aura:iteration>
+                                </tbody>
+                            </table>
+                            <center>
+                                <aura:if isTrue="{!and(v.Accountlength>=$Label.c.KM_Record_Limits, 2000>v.Accountlength)}">
+                                    <lightning:button label="{!$Label.c.KM_More_Records}" variant="base" onclick="{!c.viewMoreRecords}"/>
+                                </aura:if></center>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+    <!-- END OF ACCOUNTRECEIVABLE SEARCH TABLE-->
+    <div>
+        <aura:if isTrue="{!v.ArPage2}">
+            <lightning:buttonIcon iconName="utility:back"  variant="border-filled" title="{!$Label.c.KM_Back_To_Page}"
+                                  onclick="{!c.backToPage}"/>
+            <center>
+                <div class="slds-page-header" style="font-size: 15px;">
+                    <b>{!$Label.c.KM_Account_Receivables}</b>
+                </div>
+            </center><br/>
+            <c:KMAccountDetails accountRecord="{!v.Account}"/>
+            <!-- START OF SHIPTO AND BILLTO DATA-->
+            <!-- END OF SHIPTO AND BILLTO DATA-->
+            <h3 class="slds-section-title--divider slds-"></h3>
+            <!-- START OF ACCOUNTRECEIVABLE HEADER FOR SHIPTO-->
+            <div class="slds-grid slds-wrap">
+                <div class="slds-col slds-size_1-of-2 slds-m-top_x-small">
+                    <div class="slds-form__item" style="margin-bottom:-10px">
+                        <div class="slds-form-element slds-form-element_horizontal ">
+                            <label class="slds-form-element__label " >
+                                <b>{!$Label.c.KM_Amount_Due} :</b>
+                            </label>
+                            <div class="slds-p-top_xxx-small">
+                                {!v.ARDetails.amountDue}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-form__item " style="margin-bottom:-10px">
+                        <div class="slds-form-element slds-form-element_horizontal ">
+                            <label class="slds-form-element__label " >
+                                <b>{!$Label.c.KM_Open_Order_Amount}:</b>
+                            </label>
+                            <div class="slds-p-top_xxx-small">
+                                {!v.ARDetails.openOrderAmount}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-m-top_x-small">
+                    <div class="slds-form__item" style="margin-bottom:-10px">
+                        <div class="slds-form-element slds-form-element_horizontal ">
+                            <label class="slds-form-element__label ">
+                                <b>{!$Label.c.KM_Total_Exposure}:</b>
+                            </label>
+                            <div class="slds-p-top_xxx-small">
+                                {!v.ARDetails.totalExposure}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-form__item" style="margin-bottom:-10px">
+                        <div class="slds-form-element slds-form-element_horizontal ">
+                            <label class="slds-form-element__label " >
+                                <b>{!$Label.c.KM_Credit_Limit}:</b>
+                            </label>
+                            <div class="slds-p-top_xxx-small">
+                                {!v.ARDetails.creditLimit}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- END OF ACCOUNTRECEIVABLE HEADER FOR SHIPTO-->
+            <h3 class="slds-section-title--divider slds-"></h3>
+            <!-- START OF SEARCH FILTER FOR INVOICE LISTS-->
+            <div class="slds-grid slds-wrap">
+                <div class="slds-col slds-size_1-of-6 slds-col">
+                    <span>
+                        <lightning:select name="select1" onchange="{!c.SelectOptions}" aura:id="Selects">
+                            <option value="Filter By">{!$Label.c.KM_Filter_by}</option>
+                            <option value="Order#">{!$Label.c.KM_Order}</option>
+                            <option value="Order Type">{!$Label.c.KM_Order_Type}</option>
+                            <option value="Invoice Number">{!$Label.c.KM_Invoice}</option>
+                            <option value="Invoice Date">{!$Label.c.KM_Invoice_Date}</option>
+                        </lightning:select> </span>
+                </div>
+                <div class="slds-col slds-size_1-of-3 slds-col">
+                    <span>
+                        <aura:if isTrue="{!v.Selectedvalue}">
+                            <lightning:input  aura:id="FilterInput" disabled="{!v.InvoiceListSearchBox}" value="{!v.SearchBoxInputs}"/>
+                        </aura:if>
+                        <aura:if isTrue="{!v.SelectedOrderType}">
+                            <div class="slds-col slds-size_2-of-12 slds-p-top_medium">
+                                <c:KMFieldDepency mslabel="" msoptions="{!v.picklisvalues}"  showFilterInput="false"
+                                                  showRefreshButton="false" showClearButton="false" aura:id="OrderTypeforOH" />
+                            </div>
+                        </aura:if>
+                        <aura:if isTrue="{!v.Selecteddate}">
+                            <div class="slds-grid slds-wrap ">
+                                <div class="slds-col slds-size_1-of-1 slds-large-size_2-of-12 slds-p-top_large slds-p-left_xx-small"
+                                     style="font-size: 10px;">
+                                    <span><b>{!$Label.c.KM_Date_Filter}:</b></span>
+                                </div>
+                                <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-12 slds-p-top_medium" >
+                                    <span>
+                                        <ui:inputDate aura:id="fromDateField" value="{!v.fromDate}"  displayDatePicker="true"
+                                                      format="yyyy/MM/dd"/> </span>
+                                </div>
+                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-12 slds-p-top_large slds-p-left_xx-small" style="font-size: 10px;">
+                                    <span>
+                                        <b>{!$Label.c.KM_To}:</b></span>
+                                </div>
+                                <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-12 slds-p-top_medium" >
+                                    <span>
+                                        <ui:inputDate aura:id="EndDateField" value="{!v.toDate}"   displayDatePicker="true"
+                                                      format="yyyy/MM/dd"/>
+                                    </span>
+                                </div>
+                            </div>
+                        </aura:if>
+                    </span>
+                </div> &nbsp;&nbsp;
+                <div class="slds-col slds-size_1-of-4">
+                    <span>
+                        <div class="slds-p-top_medium">
+                            <lightning:button label="{!$Label.c.KM_Apply}"  aura:id= "ApplyButton" onclick="{!c.doApply}"
+                                              variant="brand"  disabled= "true"/>
+                            <lightning:button label="{!$Label.c.KM_Clear}" aura:id="Clearbutton" onclick="{!c.doclear}"
+                                              variant="brand"  disabled= "true"/>
+                            &nbsp;&nbsp;<a>
+                                <lightning:icon iconName="doctype:excel" alternativeText="ExportToExcel" title="ExportToExcel" onclick="{!c.downloadCsv}"/>
+                            </a>
+                        </div>
+                        
+                    </span>
+                </div>
+                 <!--<div class="slds-col slds-size_1-of-6">
+                    <span>
+                        <a>
+                              <div class="slds-p-top_medium">
+                            <lightning:icon iconName="doctype:excel" alternativeText="ExportToExcel" title="ExportToExcel" onclick="{!c.downloadCsv}"/>
+                            </div></a>
+                    </span>
+                </div>-->
+            </div>
+            <!-- END OF SEARCH FILTER INVOICE LISTS-->
+            <br/>
+            <!-- START OF INVOICE LIST TABLE-->
+            <div class="slds-card__body slds-card__body_inner">
+                <div class="slds-table--header-fixed_container" style="height:250px;">
+                    <div class="slds-scrollable_y" style="height:100%;">
+                        <!--table class="slds-table slds-line-height_reset slds-table_striped" -->
+                        <table class="slds-table slds-line-height_reset slds-table_bordered  slds-table_cell-buffer slds-table--header-fixed">
+                            <colgroup>
+                                <col style="width:10%"/>
+                                <col style="width:8%"/>
+                                <col style="width:7%"/>
+                                <col style="width:9%"/>
+                                <col style="width:10%"/>
+                                <col style="width:11%"/>
+                                <col style="width:9%"/>
+                                <col style="width:8%"/>
+                                <col style="width:7%"/>
+                                <col style="width:10%"/>
+                                <col style="width:2%"/>
+                            </colgroup>
+                            <thead>
+                                <tr class="">
+                                    <th scope="col" class="slds-is-sortable" id="orderNumber"  onclick="{!c.sortBy1}">
+                                        <div class="slds-truncate slds-cell-fixed"  title="orderNumber">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="Contact Name" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Order} </span>
+                                                <aura:if isTrue="{!and(v.sortAsc1 , v.selectedTabsoft1 == 'orderNumber')}">&nbsp;&#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc1,v.selectedTabsoft1 == 'orderNumber' )}"> &nbsp;&#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="orderType"  onclick="{!c.sortBy1}">
+                                        <div class="slds-truncate slds-cell-fixed"  title="orderType">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="orderType" style="font-size: 11px; margin-left: 5px;"> {!$Label.c.KM_Order_Type}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc1 , v.selectedTabsoft1 == 'orderType')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc1,v.selectedTabsoft1 == 'orderType' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" >
+                                        <div class="slds-truncate slds-cell-fixed nonsortablecol" title="Company" style="font-size: small; margin-left: 5px;">{!$Label.c.KM_Company}</div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="orderStatus"  onclick="{!c.sortBy1}">
+                                        <div class="slds-truncate slds-cell-fixed" title="orderStatus">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="orderStatus" style="font-size: 11px;"> {!$Label.c.KM_Order_Status}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc1 , v.selectedTabsoft1 == 'orderStatus')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc1,v.selectedTabsoft1 == 'orderStatus' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="openAmount" onclick="{!c.sortBy1}">
+                                        <div class="slds-truncate slds-cell-fixed" title="Order Type">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="openAmount" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Open_Amt}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc1 , v.selectedTabsoft1 == 'openAmount')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc1,v.selectedTabsoft1 == 'openAmount' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="invoicedAmount" onclick="{!c.sortBy1}">
+                                        <div class="slds-truncate slds-cell-fixed" title="Line#">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="invoicedAmount" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Invoice_Amt}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc1 , v.selectedTabsoft1 == 'invoicedAmount')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc1,v.selectedTabsoft1 == 'invoicedAmount' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="invoiceType" onclick="{!c.sortBy1}">
+                                        <div class="slds-truncate slds-cell-fixed" title="invoiceType">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="invoiceType" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Invoice_Type}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc1 , v.selectedTabsoft1 == 'invoiceType')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc1,v.selectedTabsoft1 == 'invoiceType' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" id="invoiceNumber" class="slds-is-sortable" onclick="{!c.sortBy1}">
+                                        <div class="slds-truncate slds-cell-fixed"  title="invoiceNumber">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="invoiceNumber" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Invoice}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc1 , v.selectedTabsoft1 == 'invoiceNumber')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc1,v.selectedTabsoft1 == 'invoiceNumber' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" id="invoiceDate" class="slds-is-sortable" onclick="{!c.sortBy1}">
+                                        <div class="slds-truncate slds-cell-fixed"  title="invoiceDate">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="InvoiceDate" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Invoice_Date}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc1 , v.selectedTabsoft1 == 'invoiceDate')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc1,v.selectedTabsoft1 == 'invoiceDate' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" >
+                                        <div class="slds-truncate slds-cell-fixed nonsortablecol" title="KM Number of Daya Outstanding " style="font-size: 10px; margin-left: 5px;">{!$Label.c.KM_Number_of_Days_Outstanding}</div>
+                                    </th>
+                                    <th class="" scope="col">
+                                        <div class="slds-truncate slds-cell-fixed" title="Navigation"></div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <aura:if isTrue="{!v.InvoiceLists.length == 0}">
+                                    <tr>
+                                        <td colspan="999" data-label="Nodata" scope="col" style="text-align: center;">
+                                            {!$Label.c.KM_No_Records_found}
+                                        </td>
+                                    </tr>
+                                </aura:if>
+                                <aura:iteration items="{!v.InvoiceLists}" var="OR" indexVar="key">
+                                    <tr class=""  data-id="{!OR}" >
+                                        <td data-label="ContactName" scope="col">
+                                            <div class="slds-truncate" >{!OR.orderNumber}
+                                                <aura:if isTrue="{!OR.invoiceType=='RL'}">
+                                                    <lightning:buttonIcon iconName="utility:chevronup" name="{!OR}" variant="bare" onclick="{! c.ArExtentiondetails }" alternativeText="Settings" title=" AR Details" />
+                                                </aura:if>
+                                            </div>
+                                        </td>
+                                        <td data-label="OrderNumber" scope="col" data-ordernumbers="{!OR.orderNumber}"  data-invoicevalue="{!OR.invoiceType}" data-types="{!OR.orderType}" data-comapny="{!OR.invoiceCompany}" data-invoicenumber="{!OR.invoiceNumber}"
+                                            data-opnumber="{!OR.customerPONumber}" data-orderdate="{!OR.invoiceDate}" onclick="{!c.OpenInvoicedetails}">
+                                            <div class="slds-truncate" >{!OR.orderType}</div>
+                                        </td>
+                                        <td data-label="PONumber" scope="col"  data-ordernumbers="{!OR.orderNumber}" data-types="{!OR.orderType}" data-comapny="{!OR.invoiceCompany}" data-invoicenumber="{!OR.invoiceNumber}"
+                                            data-opnumber="{!OR.customerPONumber}" data-orderdate="{!OR.invoiceDate}"   data-invoicevalue="{!OR.invoiceType}" onclick="{!c.OpenInvoicedetails}">
+                                            <div class="slds-truncate" >{!OR.invoiceCompany}</div>
+                                        </td>
+                                        <td data-label="OrderDate" scope="col"  data-ordernumbers="{!OR.orderNumber}" data-types="{!OR.orderType}" data-comapny="{!OR.invoiceCompany}" data-invoicenumber="{!OR.invoiceNumber}"
+                                            data-opnumber="{!OR.customerPONumber}" data-orderdate="{!OR.invoiceDate}"   data-invoicevalue="{!OR.invoiceType}" onclick="{!c.OpenInvoicedetails}">
+                                            <div class="slds-truncate" >{!OR.orderStatus}</div>
+                                        </td>
+                                        <td data-label="Total" scope="col"  data-ordernumbers="{!OR.orderNumber}" data-types="{!OR.orderType}" data-comapny="{!OR.invoiceCompany}" data-invoicenumber="{!OR.invoiceNumber}"
+                                            data-opnumber="{!OR.customerPONumber}" data-orderdate="{!OR.invoiceDate}"   data-invoicevalue="{!OR.invoiceType}" onclick="{!c.OpenInvoicedetails}">
+                                            <div class="slds-truncate" >{!OR.openAmount}</div>
+                                        </td>
+                                        <td data-label="Status" scope="col"  data-ordernumbers="{!OR.orderNumber}" data-types="{!OR.orderType}" data-comapny="{!OR.invoiceCompany}" data-invoicenumber="{!OR.invoiceNumber}"
+                                            data-opnumber="{!OR.customerPONumber}" data-orderdate="{!OR.invoiceDate}"   data-invoicevalue="{!OR.invoiceType}" onclick="{!c.OpenInvoicedetails}">
+                                            <div class="slds-truncate" >{!OR.invoicedAmount}</div>
+                                        </td>
+                                        <td data-label="HoldCode" scope="col"  data-ordernumbers="{!OR.orderNumber}" data-types="{!OR.orderType}" data-comapny="{!OR.invoiceCompany}" data-invoicenumber="{!OR.invoiceNumber}"
+                                            data-opnumber="{!OR.customerPONumber}" data-orderdate="{!OR.invoiceDate}"   data-invoicevalue="{!OR.invoiceType}" onclick="{!c.OpenInvoicedetails}">
+                                            <div class="slds-truncate" >{!OR.invoiceType}</div>
+                                        </td>
+                                        <td data-label="OrderType" scope="col"  data-ordernumbers="{!OR.orderNumber}" data-types="{!OR.orderType}" data-comapny="{!OR.invoiceCompany}" data-invoicenumber="{!OR.invoiceNumber}"
+                                            data-opnumber="{!OR.customerPONumber}" data-orderdate="{!OR.invoiceDate}"   data-invoicevalue="{!OR.invoiceType}" onclick="{!c.OpenInvoicedetails}">
+                                            <div class="slds-truncate" >{!OR.invoiceNumber }</div>
+                                        </td>
+                                        <td data-label="OrderType" scope="col"  data-ordernumbers="{!OR.orderNumber}" data-types="{!OR.orderType}" data-comapny="{!OR.invoiceCompany}" data-invoicenumber="{!OR.invoiceNumber}"
+                                            data-opnumber="{!OR.customerPONumber}" data-orderdate="{!OR.invoiceDate}"   data-invoicevalue="{!OR.invoiceType}" onclick="{!c.OpenInvoicedetails}">
+                                            <div class="slds-truncate" >{!OR.invoiceDate }</div>
+                                        </td>
+                                        <td data-label="OrderMode" scope="col" data-ordernumbers="{!OR.orderNumber}" data-types="{!OR.orderType}" data-comapny="{!OR.invoiceCompany}" data-invoicenumber="{!OR.invoiceNumber}"
+                                            data-opnumber="{!OR.customerPONumber}" data-orderdate="{!OR.invoiceDate}"   data-invoicevalue="{!OR.invoiceType}" onclick="{!c.OpenInvoicedetails}">
+                                            <div class="slds-truncate" >{!OR.daysOutstanding}</div>
+                                        </td>
+                                        <td data-label="Contact">
+                                            <div class="slds-truncate" >
+                                                <a onclick="{!c.OpenInvoicedetails}" data-ordernumbers="{!OR.orderNumber}" data-types="{!OR.orderType}" data-comapny="{!OR.invoiceCompany}" data-invoicenumber="{!OR.invoiceNumber}"
+                                                   data-opnumber="{!OR.customerPONumber}" data-orderdate="{!OR.invoiceDate}"   data-invoicevalue="{!OR.invoiceType}">
+                                                    <lightning:buttonIcon iconName="utility:chevronright"  variant="border-filled" title=" Invoice Details" />
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </aura:iteration>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- END INVOICE LIST TABLE-->
+        </aura:if>
+    </div>
+    <div>
+        <aura:if isTrue="{!v.ARInvoicedetailsPage}">
+            <lightning:buttonIcon iconName="utility:back"  variant="border-filled" title="{!$Label.c.KM_Back_To_Page}" onclick="{!c.backToAccountHeaderPage}"/>
+            <center>
+                <!-- START OF INVOICE DETAILS DATA-->
+                <div class="slds-page-header" style="font-size: 15px;">
+                    <b>{!$Label.c.KM_Account_Receivables}</b>
+                </div>
+            </center><br/>
+            <div  class="c-container slds-p-left_medium">
+                <div class="slds-grid slds-wrap">
+                    <div class="slds-col slds-size_1-of-6 slds-grid_vertical">
+                        <span>
+                            <b>{!$Label.c.KM_Invoice} : </b>{!v.InvoiceNumbers}</span>
+                    </div>
+                    <aura:if isTrue="{!v.listInvoiceType=='RL'}">
+                        <aura:set attribute="else">
+                            <div class="slds-col slds-size_1-of-7 ">
+                                <span>
+                                    <b>{!$Label.c.KM_Order} : </b>{!v.Orderno}
+                                </span>
+                            </div>
+                            <div class="slds-col slds-size_1-of-7 ">
+                                <span>
+                                    <b>{!$Label.c.KM_Order_Type} : </b>{!v.Ordertypes}
+                                </span>
+                            </div>
+                            <div class="slds-col slds-size_2-of-6">
+                                <span>
+                                    <b>{!$Label.c.KM_PO} : </b>{!v.customerPo}
+                                </span>
+                            </div>
+                            <div class="slds-col slds-size_1-of-6"  style="width:auto" >
+                                <span>
+                                    <b>{!$Label.c.KM_Order_Date} : </b>{!v.orderdate}
+                                </span>
+                            </div>
+                        </aura:set>
+                    </aura:if>
+
+                </div>
+
+            </div><br/>
+            <!-- END  INVOICE DETAILS DATA-->
+            <!-- START OF SHIPTO AND BILLTO DATA-->
+            <h3 class="slds-section-title--divider slds-"></h3>
+            <c:KMAccountDetails accountRecord="{!v.Account}" invoiceType="{!v.listInvoiceType}"/>
+            <!-- END OF SHIPTO AND BILLTO DATA-->
+            <h3 class="slds-section-title--divider slds-"></h3>
+            <!-- STRAT OF SEARCH FILTER FOR INVOICE DETAIL TABLE-->
+            <div class="slds-grid slds-wrap">
+                <div class="slds-col slds-size_1-of-6 slds-col">
+                    <span>
+                        <lightning:select name="select1" onchange="{!c.InvoiceSelectOptions}" aura:id="InvoiceSelects">
+                            <option value="Filter By">{!$Label.c.KM_Filter_by} </option>
+                            <option value="Order#">{!$Label.c.KM_Order}</option>
+                            <option value="Ship-To#">{!$Label.c.KM_Ship_To}</option>
+                            <option value="Order Type">{!$Label.c.KM_Order_Type}</option>
+                            <option value="Product Name">{!$Label.c.KM_Product_Name}</option>
+                            <option value="Product#">{!$Label.c.KM_Product}</option>
+                            <option value="Shipment Date">{!$Label.c.KM_Shipment_Date}</option>
+                        </lightning:select> </span>
+                </div>
+                <div class="slds-col slds-size_1-of-3 slds-col">
+                    <span>
+                        <aura:if isTrue="{!v.InvoiceTexts}">
+                            <lightning:input aura:id="Invoicedetailinputs" disabled="{!v.Invoiceinoutdisabled}" value="{!v.InvoiceInputSearchBox}"/>
+                        </aura:if></span>
+
+                    <aura:if isTrue="{!v.invoiceorderTypes}">
+                        <div class="slds-col slds-size_1-of-12 slds-p-top_medium">
+                            <c:KMFieldDepency mslabel="" msoptions="{!v.picklisvalues}"  showFilterInput="false" showRefreshButton="false" showClearButton="false" aura:id="OrderTypeforOH1" />
+                        </div>
+                    </aura:if>
+                    <aura:if isTrue="{!v.invoiceShipmentdates}">
+                        <div class="slds-grid slds-wrap ">
+                            <div class="slds-col slds-size_1-of-1 slds-large-size_2-of-12 slds-p-top_large slds-p-left_xx-small" style="font-size: 10px;">
+                                <span><b>{!$Label.c.KM_Date_Filter}:</b></span>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-12 slds-p-top_medium">
+                                <span>
+                                    <ui:inputDate aura:id="InfromDateField" value="{!v.InvoicefromDate}"  displayDatePicker="true" format="yyyy/MM/dd"/> </span>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-12 slds-p-top_large slds-p-left_xx-small" style="font-size: 10px;">
+                                <span>
+                                    <b>{!$Label.c.KM_To}:</b></span>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-12 slds-p-top_medium">
+                                <span>
+                                    <ui:inputDate aura:id="INEndDateField" value="{!v.InvoicetoDate}"   displayDatePicker="true" format="yyyy/MM/dd"/>
+                                </span>
+                            </div>
+                        </div>
+                    </aura:if>
+                </div> &nbsp;&nbsp;
+                <div class="slds-col slds-size_1-of-4">
+                    <span>
+                        <div class="slds-p-top_medium">
+                            <lightning:button label="{!$Label.c.KM_Apply}" onclick="{!c.doInvoiceApply}" variant="brand" disabled="true" aura:id="InvoiceApplybutton"/>
+                            <lightning:button label="{!$Label.c.KM_Clear}" onclick="{!c.doInvoiceclear}" variant="brand" disabled="true" aura:id="Invoiceclearbutton"/>
+                            &nbsp;&nbsp; <a>
+                                <lightning:icon iconName="doctype:excel" alternativeText="ExportToExcel" title="ExportToExcel" onclick="{!c.downloadCsv1}"/>
+                            </a>
+                        </div>
+                    </span>
+                </div>
+                <!--<div class="slds-col slds-size_1-of-6">
+                    <span>
+                        <a>
+                            <div class="slds-p-top_medium">
+                                <lightning:icon iconName="doctype:excel" alternativeText="ExportToExcel" title="ExportToExcel" onclick="{!c.downloadCsv1}"/>
+                            </div></a>
+                    </span>
+                </div>-->
+            </div>
+            <!-- END SEARCH FILTER fOR INVOICE DETAIL TABLE-->
+            <br/>
+            <!-- START OF INVOICE DETAIL TABLE-->
+            <div class="slds-card__body slds-card__body_inner">
+                <div class="slds-table--header-fixed_container" style="height:250px;">
+                    <div class="slds-scrollable_y" style="height:100%;">
+                        <!--table class="slds-table slds-line-height_reset slds-table_striped" -->
+                        <table class="slds-table slds-line-height_reset slds-table_bordered  slds-table_cell-buffer slds-table--header-fixed">
+                            <colgroup>
+                                <col style="width:9%"/>
+                                <col style="width:10%"/>
+                                <col style="width:9%"/>
+                                <col style="width:10%"/>
+                                <col style="width:13%"/>
+                                <col style="width:12%"/>
+                                <col style="width:7%"/>
+                                <col style="width:14%"/>
+                                <col style="width:12%"/>
+                            </colgroup>
+                            <thead>
+                                <tr class="">
+                                    <th scope="col" class="slds-is-sortable" id="OrderNum"  onclick="{!c.sortBy2}">
+                                        <div class="slds-truncate slds-cell-fixed"  title="Order Number">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="OrderNum" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Order}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc2 , v.selectedTabsoft2 == 'OrderNum')}">&nbsp;&#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc2,v.selectedTabsoft2 == 'OrderNum' )}"> &nbsp;&#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="ShipToNum"  onclick="{!c.sortBy2}">
+                                        <div class="slds-truncate slds-cell-fixed"  title="ShipToNum">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="ShipToNum" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Ship_To}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc2 , v.selectedTabsoft2 == 'ShipToNum')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc2,v.selectedTabsoft2 == 'ShipToNum' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="OrderType"  onclick="{!c.sortBy2}">
+                                        <div class="slds-truncate slds-cell-fixed" title="OrderType">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="OrderType" style="font-size: 11px; margin-left: 5px;"> {!$Label.c.KM_Order_Type}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc2 , v.selectedTabsoft2 == 'OrderType')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc2,v.selectedTabsoft2 == 'OrderType' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="LineNumber"  onclick="{!c.sortBy2}">
+                                        <div class="slds-truncate slds-cell-fixed" title="LineNumber">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="LineNumber" style="font-size: 11px; margin-left: 5px;"> {!$Label.c.KM_Line}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc2 , v.selectedTabsoft2 == 'LineNumber')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc2,v.selectedTabsoft2 == 'LineNumber' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" >
+                                        <div class="slds-truncate slds-cell-fixed nonsortablecol" title="Product" style="font-size: 11px; margin-left: 5px;"> {!$Label.c.KM_Product}</div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="Status" onclick="{!c.sortBy2}">
+                                        <div class="slds-truncate slds-cell-fixed" title="Status">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="Status" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Status}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc2 , v.selectedTabsoft2 == 'Status')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc2,v.selectedTabsoft2 == 'Status' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" >
+                                        <div class="slds-truncate slds-cell-fixed nonsortablecol" title="Quantity" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Quantity}</div>
+                                    </th>
+                                    <th scope="col" >
+                                        <div class="slds-truncate slds-cell-fixed nonsortablecol" title="Customer Price" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Customer_Price}</div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="ShipmentDate" onclick="{!c.sortBy2}">
+                                        <div class="slds-truncate slds-cell-fixed" title="ShipmentDate">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="ShipmentDate" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Shipment_Date}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc2 , v.selectedTabsoft2 == 'ShipmentDate')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc2,v.selectedTabsoft2 == 'ShipmentDate' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <aura:if isTrue="{!v.ARInvoicedetails.length == 0}">
+                                    <tr >
+                                        <td colspan="999" data-label="Nodata" scope="col" style="text-align: center;">
+                                            {!$Label.c.KM_No_Records_found}
+                                        </td>
+                                    </tr>
+                                </aura:if>
+                                <aura:iteration items="{!v.ARInvoicedetails}" var="ID" indexVar="key">
+                                    <tr class=""    data-id="{!ID}">
+                                        <td data-label="ContactName" scope="col">
+                                            <div class="slds-truncate" >{!ID.OrderNum}</div>
+                                        </td>
+                                        <td data-label="OrderNumber" scope="col">
+                                            <div class="slds-truncate" >{!ID.ShipToNum}</div>
+                                        </td>
+                                        <td data-label="PONumber" scope="col">
+                                            <div class="slds-truncate" >{!ID.OrderType}</div>
+                                        </td>
+                                        <td data-label="OrderDate" scope="col">
+                                            <div class="slds-truncate" >{!ID.LineNumber}</div>
+                                        </td>
+                                        <td data-label="Total" scope="col">
+                                            <div class="slds-truncate" >{!ID.ProductNum}{!ID.ProductName}{!ID.UnitSize}</div>
+                                        </td>
+                                        <td data-label="Status" scope="col">
+                                            <div class="slds-truncate" >{!ID.Status}</div>
+                                        </td>
+                                        <td data-label="HoldCode" scope="col">
+                                            <div class="slds-truncate" >{!ID.Quantity}</div>
+                                        </td>
+                                        <td data-label="OrderType" scope="col">
+                                            <div class="slds-truncate" >{!ID.CustomerPrice }</div>
+                                        </td>
+                                        <td data-label="OrderType" scope="col">
+                                            <div class="slds-truncate" >{!ID.ShipmentDate }</div>
+                                        </td>
+                                    </tr>
+                                </aura:iteration>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- END THE INVOICE DETAIL TABLE-->
+        </aura:if>
+    </div>
+    <!-- START SPINNER PANEL-->
+    <aura:if isTrue="{!v.loaded}">
+        <div class="demo-only demo-only demo-only_viewport demo--inverse" style="height:6rem">
+            <div class="slds-spinner_container slds-is-fixed">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner--brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+    <!-- END SPINNER PANEL-->
+</aura:component>

@@ -1,0 +1,149 @@
+<apex:page standardController="Case" StandardStyleSheets="true" lightningStylesheets="true" extensions="CreateNewCaseOpportunityExtension" showHeader="true" sidebar="false">
+    <apex:slds />
+    <apex:form id="frm">
+        <!--header-->
+        <div class="slds-page-header slds-page-header_record-home">
+            <div class="slds-page-header__row">
+                <div class="slds-page-header__col-title">
+                    <div class="slds-media">
+                        <div class="slds-media__figure">
+                            <span class="slds-icon_container slds-icon-standard-opportunity">
+                                <svg class="slds-icon slds-page-header__icon" aria-hidden="true">
+                                    <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="/apexpages/slds/latest/assets/icons/standard-sprite/svg/symbols.svg#opportunity"></use>
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="slds-media__body">
+                            <div class="slds-page-header__name">
+                                <div class="slds-page-header__name-title">
+                                    <h1>
+                                        <span>Opportunities</span>
+                                        <span class="slds-page-header__title slds-truncate">New Opportunity</span>
+                                    </h1>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="slds-page-header__col-actions">
+                    <div class="slds-page-header__controls">
+                        <div class="slds-page-header__control"></div>
+                        <div class="slds-page-header__control"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--content-->
+        <apex:pageblock id="pb" mode="edit">
+            <apex:pageMessages id="pgMessage" />
+            <apex:outputPanel id="pnlMain">
+                <apex:outputPanel rendered="{!IF(oCase.Opportunity__c != null, false, true)}">
+                    <apex:repeat value="{!layoutSections}" var="layoutSection">
+                        <apex:pageBlockSection title="{!layoutSection.name}" collapsible="{!layoutSection.allowCollapse}" columns="{!layoutSection.columns}">
+                            <apex:repeat value="{!layoutSection.layoutFields}" var="layoutField">
+                                <apex:inputField value="{!opp[layoutField.ApiName]}" rendered="{!not(layoutField.isPlaceHOlder)}" required="{!layoutField.required}" />
+                                <apex:pageblocksectionitem rendered="{!layoutField.isPlaceHolder}">
+                                </apex:pageblocksectionitem>
+                            </apex:repeat>
+                        </apex:pageBlockSection>
+                    </apex:repeat>
+                </apex:outputPanel>
+                <apex:outputPanel rendered="{!IF(oCase.Opportunity__c != null, true, false)}">
+                    <div style="height:270px;"></div>
+                </apex:outputPanel>
+            </apex:outputPanel>
+        </apex:pageblock>
+
+        <!--footer-->
+        <div class="slds-docked-form-footer">
+            <apex:commandButton value="Cancel" action="{!cancel}" immediate="true" styleClass="slds-button slds-button_neutral" status="status" />
+            <apex:commandButton value="Save" action="{!createNewOpportunity}" rerender="pb" styleClass="slds-button slds-button_brand" status="status" disabled="{!IF(oCase.Opportunity__c != null, true, false)}" oncomplete="window.scrollTo(0,0);" />
+        </div>
+
+        <!--action_status-->
+        <apex:actionstatus id="status">
+            <apex:facet name="start">
+                <div class="slds-spinner_container" style="position:fixed !Important;">
+                    <div id="mySpinner" role="status" class="slds-spinner slds-spinner_medium">
+                        <span class="slds-assistive-text">Loading</span>
+                        <div class="slds-spinner__dot-a"></div>
+                        <div class="slds-spinner__dot-b"></div>
+                    </div>
+                </div>
+            </apex:facet>
+        </apex:actionstatus>
+
+        <script>
+            function setFocusOnLoad() {}
+        </script>
+        
+        <style type="text/css">
+            .message .messageText h4 {
+                color: #ffffff !important;
+            }
+
+            .messageTable tbody td {
+                width: 2.5% !important;
+                color: #ffffff !important;
+            }
+
+            .message .messageTable .messageCell {
+                width: 100% !important;
+                color: white;
+            }
+
+            .errorM3 {
+                padding: 10px;
+                font-size: 16px;
+                background: #c23934 !Important;
+                border-radius: 5px;
+                margin: 0rem;
+                color: #ffffff !Important;
+                margin-bottom: 5px;
+            }
+
+            .errorM3>ul {
+                color: #ffffff !Important;
+            }
+
+            .infoM3 {
+                padding: 10px;
+                font-size: 16px;
+                font-weight: bold;
+                background: #8088b3;
+                border-radius: 5px;
+                margin: 0rem;
+                color: white;
+            }
+
+            .confirmM3 {
+                padding: 10px;
+                font-size: 16px;
+                font-weight: bold;
+                background: #155a15;
+                border-radius: 5px;
+                margin: 0rem;
+                color: white;
+            }
+
+            .warningM3 {
+                padding: 10px;
+                font-size: 16px;
+                font-weight: bold;
+                background: #f9a21f;
+                border-radius: 5px;
+                margin: 0rem;
+                color: white;
+            }
+
+            .helpOrb {
+                padding: 0.75rem 1rem 0 0 !Important;
+            }
+
+            .bPageBlock {
+                margin-bottom: 35px !Important;
+            }
+        </style>
+    </apex:form>
+</apex:page>

@@ -1,0 +1,56 @@
+<!--
+    Component: KMShipToNumValidation
+    Purpose: Component for ShipTo Number Validation Popup display
+    Author: Sreenivas (Keste)
+    Created Date: 16th June 2020
+-->
+<aura:component>
+
+    <aura:attribute name="orderedProducts" type="Object[]"/>
+    <aura:attribute name="orderDetails" type="Object"/>
+    <aura:attribute name="savedOrderDetails" type="Object" />
+    <aura:attribute name="oldShipToNumber" type="string"/>
+    <aura:attribute name="shipToName" type="string"/>
+    <aura:attribute name="showShipToPopup" type="boolean" default="false"/>
+    <aura:attribute name="showOrderTypePopup" type="Boolean" default="false" />
+    <aura:registerEvent name="refreshOrderForm" type="c:KMRefreshOrderForm"/>
+
+    <aura:if isTrue="{!v.showShipToPopup}">
+        <section role="dialog" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container" style="width: 550px;">
+                <!--###### MODAL BOX BODY Part Start######-->
+                <div class="slds-modal__content slds-p-around_medium">
+                    {!format($Label.c.KM_Existing_ShipTo_Warning_Message, v.oldShipToNumber, v.shipToName)}
+                </div>
+                <!--###### MODAL BOX FOOTER Part Start ######-->
+                <footer class="slds-modal__footer">
+                    <div class="slds-align_absolute-center">
+                        <lightning:button label="No" onclick="{!c.closeShipToValidModel}"/>
+                        <lightning:button label="Yes" variant="brand" onclick="{!c.addProdsWithNewShipTo}"/>
+                    </div>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </aura:if>
+
+    <aura:if isTrue="{!v.showOrderTypePopup}">
+        <section role="dialog" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container" style="width: 550px;">
+                <!--###### MODAL BOX BODY Part Start######-->
+                <div class="slds-modal__content slds-p-around_medium">
+                    {!$Label.c.KM_Cart_Order_Type_Mismatch_Warning}
+                </div>
+                <!--###### MODAL BOX FOOTER Part Start ######-->
+                <footer class="slds-modal__footer">
+                    <div class="slds-align_absolute-center">
+                        <lightning:button label="No" onclick="{!c.closeOrderTypePopup}"/>
+                        <lightning:button label="Yes" variant="brand" onclick="{!c.addProdsWithNewShipTo}"/>
+                    </div>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </aura:if>
+
+</aura:component>

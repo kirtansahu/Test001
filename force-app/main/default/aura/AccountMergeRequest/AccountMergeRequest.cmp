@@ -1,0 +1,150 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:lightningQuickActionWithoutHeader" 
+                access="global" controller="AccountMergeRequestCtr" extends="c:BaseComponent">
+    <aura:attribute name="survivorUniqueId" type="String" default="" />
+    <aura:attribute name="victimUniqueId" type="String" default="" />
+    
+    <aura:attribute name="showError" type="Boolean" default="false" />
+    <aura:attribute name="isAllValid" type="Boolean" default="false" />
+    <aura:attribute name="isActionAllowed" type="Boolean" default="false" />
+    <aura:attribute name="showConfirm" type="Boolean" default="false" />
+    <aura:attribute name="actionInProcess" type="Boolean" default="false" />
+    <aura:attribute name="processAsyncronus" type="Boolean" default="false" />
+    <aura:attribute name="errorMessages" type="List" default="[]" />
+    
+    <aura:attribute name="survivorAccount" type="Account" />
+    <aura:attribute name="victimAccount" type="Account"/>
+    
+    
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
+    
+    <div class="slds-container">
+        <div class="{!'custom-container is-phone-or-tablet-'+($Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet)}"> 
+            <div class="slds-page-header">
+                <div class="slds-page-header__row">
+                    <div class="slds-page-header__col-title">
+                        <div class="slds-media">
+                            <div class="slds-media__body">
+                                <div class="slds-page-header__name">
+                                    <div class="slds-page-header__name-title">
+                                        <h1>
+                                            <span class="slds-page-header__title slds-truncate" title="Account Merge Request">Account Merge Request</span>
+                                        </h1>
+                                    </div>
+                                </div>
+                                <p class="slds-page-header__name-meta"></p>
+                                <p class="slds-m-top_x-small">
+                                    <lightning:formattedRichText value="{!$Label.c.ACCOUNT_MERGE_REQUEST_INSTRUCTIONS}"/>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <aura:if isTrue="{!v.isActionAllowed}">
+                <lightning:layout multipleRows="true">
+                    <lightning:layoutItem padding="around-small" smallDeviceSize="12" mediumDeviceSize="6" largeDeviceSize="6" size="{!if(($Browser.isIPhone || $Browser.isPhone), 12, 6)}" >
+                        <lightning:card class="slds-p-around_small custom-account-detail-card">
+                            <aura:set attribute="title">
+                                <lightning:icon iconName="standard:account" size="small"/>
+                                Survivor Account Details
+                            </aura:set>
+                            <lightning:input type="text" name="text1" label="Survivor Unique Id" value="{!v.survivorUniqueId}" required="true" onblur="{!c.checkAccounts}"/>
+                            <aura:if isTrue="{!v.survivorAccount}">
+                                <c:AccountDetailTile accountOb="{!v.survivorAccount}"/>
+                            </aura:if>
+                        </lightning:card>
+                    </lightning:layoutItem>
+                    
+                    <lightning:layoutItem padding="around-small" smallDeviceSize="12" mediumDeviceSize="6" largeDeviceSize="6" size="{!if(($Browser.isIPhone || $Browser.isPhone), 12, 6)}" >
+                        <lightning:card class="slds-p-around_small custom-account-detail-card">
+                            <aura:set attribute="title">
+                                <lightning:icon iconName="standard:account" size="small"/>
+                                Victim Account Details
+                            </aura:set>
+                            <lightning:input type="text" name="text2" label="Victim Unique Id" value="{!v.victimUniqueId}" required="true" onblur="{!c.checkAccounts}"/>
+                            <aura:if isTrue="{!v.victimAccount}">
+                                <c:AccountDetailTile accountOb="{!v.victimAccount}"/>
+                            </aura:if>
+                        </lightning:card>
+                    </lightning:layoutItem>
+                    
+                    <div class="slds-docked-form-footer slds-grid slds-float_right">
+                        <aura:if isTrue="{!and(v.errorMessages, v.errorMessages.length > 0)}">
+                            <lightning:icon iconName="utility:error" alternativeText="Error!" variant="error" class="slds-p-horizontal_small" onclick="{!c.showHideError}"/>
+                        </aura:if>
+                        <button type="button" class="slds-button slds-button_neutral" onclick="{!c.reset}" tabindex="3" disabled="{!v.actionInProcess}">Reset</button>
+                        <button type="button" class="slds-button slds-button_brand save-btn" onclick="{!c.showConfirmModel}" tabindex="4" disabled="{!or(!v.isAllValid, v.actionInProcess)}">Start Merging</button>
+                        
+                        <aura:if isTrue="{!v.showError}">
+                            <section class="slds-popover slds-popover_error slds-nubbin_bottom-left" role="dialog" style="position:absolute;bottom:56px;left:50%;margin-left:62px;transform:translateX(-50%)">
+                                <button class="slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close slds-button_icon-inverse" title="Close dialog" onclick="{!c.showHideError}">
+                                    <lightning:icon iconName="utility:close" size="small" alternativeText="close" variant="inverse"/>
+                                    <span class="slds-assistive-text">Close dialog</span>
+                                </button>
+                                <header class="slds-popover__header">
+                                    <div class="slds-media slds-media_center slds-has-flexi-truncate ">
+                                        <div class="slds-media__figure">
+                                            <lightning:icon iconName="utility:error" size="small" alternativeText="Error!" variant="inverse"/>
+                                        </div>
+                                        <div class="slds-media__body">
+                                            <h2 class="slds-truncate slds-text-heading_medium" id="dialog-heading-id-2" title="Resolve error">Resolve error</h2>
+                                        </div>
+                                    </div>
+                                </header>
+                                <div class="slds-popover__body">
+                                    <p>
+                                        <ul>
+                                            <aura:iteration items="{!v.errorMessages}" var="msg">
+                                                <li>{!msg}</li>
+                                            </aura:iteration>
+                                        </ul>
+                                    </p>
+                                </div>
+                            </section>
+                        </aura:if>
+                    </div>
+                </lightning:layout>
+                
+                <aura:set attribute="else">
+                    <center class="slds-p-around_xx-large">
+                    	<lightning:icon iconName="utility:error" size="large" alternativeText="Error!" variant="error"/>
+                        <br/>
+                        <div class="slds-p-around_small custom-error-message">
+                            <aura:iteration items="{!v.errorMessages}" var="msg">
+                                {!msg}
+                            </aura:iteration>
+                        </div>
+                    </center>
+                </aura:set>
+            </aura:if>
+        </div>
+		
+        <aura:if isTrue="{!and(v.isAllValid, v.showConfirm)}">
+            <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h1 class="slds-modal__title slds-hyphenate"><b>Confirm</b></h1>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <h1>Are you sure? You want to merge <b>{!v.victimAccount.Name} ({!v.victimAccount.Unique_Id__c})</b> to <b>{!v.survivorAccount.Name}  ({!v.survivorAccount.Unique_Id__c})</b>?</h1><br/>
+                        <p>Once confirmed you can't undo this action, all related entities of
+                            victim account <b>{!v.victimAccount.Name} ({!v.victimAccount.Unique_Id__c})</b> will be moved to survivor account <b>{!v.survivorAccount.Name} ({!v.survivorAccount.Unique_Id__c})</b>.</p><br/>
+                        <p>On successfully comption of this action, victim account <b>{!v.victimAccount.Name} ({!v.victimAccount.Unique_Id__c})</b> will be no longer available in the system</p>
+                        <aura:if isTrue="{!v.processAsyncronus}">
+                            <br/><br/>
+                            <p>
+                                <lightning:formattedRichText value="{!$Label.c.ACCOUNT_MERGE_ASYNC_MESSAGE}"/>
+                            </p>
+                        </aura:if>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <button class="slds-button slds-button_neutral" onclick="{!c.hideConfirmModel}">No</button>
+                        <button class="slds-button slds-button_brand" onclick="{!c.startMerging}">Yes, Merge Please</button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </aura:if>
+    </div>
+</aura:component>

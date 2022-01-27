@@ -1,0 +1,120 @@
+.THIS .slds-form-element_horizontal:not(.slds-is-editing) {
+    padding: 0 15px;
+}
+
+.THIS .custom-form-false {
+   /* max-height: 65vh; */
+    max-width: 75vw;
+}
+.THIS .custom-form-true {
+  /*  max-height: 80vh; */
+}
+
+.THIS .slds-p-around_large {
+    padding: 1.5rem;
+}
+.THIS .slds-p-around--large {
+    padding: 1.5rem;
+}
+
+.THIS .custom-header {
+    font-weight: bold;
+    font-size: 1rem;
+    line-height: 1.25;
+}
+.THIS h4 {
+    font-weight: bold;
+    font-size: 1rem;
+    line-height: 1.25;
+}
+
+
+.THIS .OppForm .slds-align_absolute-center{
+    top: 90%;
+    display: block;
+    width: 100%;
+    left: 0px;
+    border-top: 2px solid rgb(221, 219, 218);
+    padding: .75rem 1rem;
+    background-color: rgb(243, 242, 242);
+    text-align: right;
+    box-shadow: 0 2px 3px 0 rgba(0, 0, 0, 0.16);
+}
+.THIS .slds-p-around_medium {
+    padding: 0;
+}
+.THIS .slds-p-around--medium {
+    padding: 0;
+}
+
+.THIS .OppForm input[disabled], .THIS .OppForm select[disabled]{
+    border: none !important;
+    background-color: white !important;
+}
+
+.THIS.custom-modal-container .custom-docked-footer {
+    bottom: 2px !important; 
+    justify-content: flex-end !important;
+    padding-right: 1rem !important;
+}
+
+.THIS .table-container table thead th span.slds-th__action>span{
+    font-weight: bold;
+}
+
+.THIS .table-container table thead th span[title^='*']:before {
+    content: "*";
+    color: #f10000;
+    position: absolute;
+}
+.THIS .slds-border_right {
+    border: none !important;
+}
+.THIS .slds-border_left {
+    border: none !important;
+}
+.THIS .slds-modal__footer {
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: none;
+}
+.THIS .forceChatterBasePublisher {
+    padding:0;
+}
+
+
+.THIS .slds-input:focus {
+    outline: 0;
+    border-color: rgb(21, 137, 238); /* This is the blue color of the border */
+    background-color: rgb(255, 255, 255);
+    box-shadow: 0 0 3px #0070d2; /* This is the blue color of the shadow */
+}
+
+.THIS .device-iPad-or-tablet .custom-field-container {
+    width: 100% !important;
+}
+
+
+.THIS .device-iPad-or-tablet .custom-field-container {
+    width: 100% !important;
+    padding: 1rem 0px 0px 0px !important;
+}
+
+.THIS .device-iPad-or-tablet span.slds-form-element__label {
+    padding-left: 1rem !important;
+}
+
+.THIS .device-iPad-or-tablet .slds-form-element__static {
+    padding-left: 1rem !important;
+}
+
+.THIS .device-iPad-or-tablet .slds-checkbox__label .slds-form-element__label {
+    padding-left: 0rem !important;
+}
+
+.THIS .device-iPad-or-tablet div.slds-form-element__control {
+    clear: both !important;
+    float: left !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+}

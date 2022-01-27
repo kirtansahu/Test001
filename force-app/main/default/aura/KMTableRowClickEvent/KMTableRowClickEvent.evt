@@ -1,0 +1,5 @@
+<aura:event type="COMPONENT">
+    <aura:attribute name="recordId" type="String" />
+    <aura:attribute name="type" type="String" />
+    <aura:attribute name="tableName" type="String" />
+</aura:event>

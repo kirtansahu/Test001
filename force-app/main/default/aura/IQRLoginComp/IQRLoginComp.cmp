@@ -1,0 +1,32 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    <!--attribute-->
+    <aura:attribute name="iframeUrl" type="String" default="{!$Label.c.IQR_Login_URL}"/>
+    <aura:attribute name="width" type="String" default="100%"/>
+    <aura:attribute name="height" type="String" default="550px"/>
+    <aura:attribute name="scrolling" type="String" default="auto"/>
+    
+    <!--markup-->
+    <div style="background-color:#ffffff;">
+        <center>
+            <!--warning-->
+            <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_warning" role="alert">
+                <span class="slds-assistive-text">offline</span>
+                <span class="slds-icon_container slds-icon-utility-warning slds-m-right_x-small" title="Description of icon when needed">
+                    <lightning:icon iconName="utility:warning" size="x-small"/>
+                </span>
+                <h2>{!$Label.c.IQR_Login_VPN_Warning_Msg}</h2>
+            </div>
+            
+            <!--Header-->
+            <div class="slds-text-heading_large slds-m-top_x-small slds-m-bottom_x-small">
+                <b>{!$Label.c.IQR_Login_Header}</b>
+            </div>
+            
+            <!--Iframe-->
+            <iframe src="{!v.iframeUrl}"
+                    scrolling="{!v.scrolling}"
+                    width="{!v.width}"
+                    height="{!v.height}"/>
+        </center>
+    </div>
+</aura:component>

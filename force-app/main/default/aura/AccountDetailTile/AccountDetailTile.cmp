@@ -1,0 +1,66 @@
+<aura:component >
+    <aura:attribute name="accountOb" type="Account" />
+    <lightning:tile class="slds-box slds-m-vertical_small" label="{!v.accountOb.Name}" href="{!'/'+v.accountOb.Id}" >
+        <aura:set attribute="media">
+            <lightning:icon iconName="standard:account"/>
+        </aura:set>
+        <dl class="{!'slds-dl_horizontal is-phone-'+($Browser.isIPhone || $Browser.isPhone)}">
+            <dt class="slds-dl_horizontal__label">
+                <p class="slds-truncate" title="Account#">Account#:</p>
+            </dt>
+            <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                <p class="slds-truncate" title="{!v.accountOb.ERP_Account_Id__c}">{!v.accountOb.ERP_Account_Id__c}</p>
+            </dd>
+            <dt class="slds-dl_horizontal__label">
+                <p class="slds-truncate" title="Account Record Type">Account Record Type:</p>
+            </dt>
+            <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                <p class="slds-truncate" title="{!v.accountOb.RecordType.Name}">{!v.accountOb.RecordType.Name}</p>
+            </dd>
+            
+            <dt class="slds-dl_horizontal__label">
+                <p class="slds-truncate" title="Street">Street:</p>
+            </dt>
+            <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                <p class="slds-truncate" title="{!v.accountOb.Street_f__c}">{!v.accountOb.Street_f__c}</p>
+            </dd>
+            <dt class="slds-dl_horizontal__label">
+                <p class="slds-truncate" title="City">City:</p>
+            </dt>
+            <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                <p class="slds-truncate" title="{!v.accountOb.City_f__c}">{!v.accountOb.City_f__c}</p>
+            </dd>
+            <dt class="slds-dl_horizontal__label">
+                <p class="slds-truncate" title="State/Province">State/Province:</p>
+            </dt>
+            <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                <p class="slds-truncate" title="{!v.accountOb.State_f__c}">{!v.accountOb.State_f__c}</p>
+            </dd>
+            <dt class="slds-dl_horizontal__label">
+                <p class="slds-truncate" title="Zip/Postal Code">Zip/Postal Code:</p>
+            </dt>
+            <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                <p class="slds-truncate" title="{!v.accountOb.Zip_Postal_Code_f__c}">{!v.accountOb.Zip_Postal_Code_f__c}</p>
+            </dd>
+            <dt class="slds-dl_horizontal__label">
+                <p class="slds-truncate" title="Country">Country:</p>
+            </dt>
+            <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                <p class="slds-truncate" title="{!v.accountOb.Country__c}">{!v.accountOb.Country__c}</p>
+            </dd>
+            
+            <dt class="slds-dl_horizontal__label">
+                <p class="slds-truncate" title="Customer Segment">Customer Segment:</p>
+            </dt>
+            <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                <p class="slds-truncate" title="{!v.accountOb.Customer_Segment__c}">{!v.accountOb.Customer_Segment__c}</p>
+            </dd>
+            <dt class="slds-dl_horizontal__label">
+                <p class="slds-truncate" title="Unique Id">Unique Id:</p>
+            </dt>
+            <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                <p class="slds-truncate" title="{!v.accountOb.Unique_Id__c}">{!v.accountOb.Unique_Id__c}</p>
+            </dd>
+        </dl>
+    </lightning:tile>
+</aura:component>

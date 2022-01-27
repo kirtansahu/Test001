@@ -1,0 +1,307 @@
+<!--
+    Component: KMCustomerOrderSearch
+    Purpose: Component for Search functionality in Customer/Orders tab
+    Author: Ajinkya H (Keste)
+    Created Date: 15th June 2020
+-->
+<aura:component controller="KMCustomersOrdersCls">
+
+    <!--Attributes-->
+    <aura:attribute name="searchInput" type="String"/>
+    <aura:attribute name="enableSearch" type="Boolean" default="true"/>
+    <aura:attribute name="selectedOption" type="String" default="{!$Label.c.KM_ShipTo_Alpha_Name}"/>
+    <!--Customer Order Ship To Table Attributes-->
+    <aura:attribute name="showCustomerOrderTable" type="Boolean" default="false" />
+    <aura:attribute name="shipToList" type="Account[]"/>
+    <aura:attribute name="AccsortAsc" type="Boolean" access="private" />
+    <aura:attribute name="AccselectedTabsoft1" type="String" default="Account_Alpha_Name__c"
+        description="Use for show/hide arraow sign on header based on conditions" access="private" />
+    <aura:attribute name="showSpinner" type="Boolean" default="false"/>
+    <aura:attribute name="accountLength" type="Integer"/>
+    <!--End-->
+    <!--Customer Order Search Contact Table Attributes-->
+    <aura:attribute name="showContactTable" type="Boolean" default="false" />
+    <aura:attribute name="contactList" type="Contact[]" />
+    <aura:attribute name="conLength" type="Integer" />
+    <aura:attribute name="consortCon" type="Boolean" />
+    <aura:attribute name="conselectedTabsoft1" type="String" default="Name"
+        description="Use for show/hide arraow sign on header based on conditions" />
+    <!--End-->
+
+    <!--Events-->
+    <aura:registerEvent name="KMTableRowClickEvent" type="c:KMTableRowClickEvent"/>
+    <aura:method name="loadCustomerOrderSearch" action="{!c.doCustomerOrderSearch}" description="" access="public">
+    </aura:method>
+
+    <div id="customerOrderSearch">
+        <center>
+            <h1 class="slds-page-header__title slds-m-right_small slds-align-middle slds-truncate" title="{!$Label.c.KM_Customer_Orders}">
+                {!$Label.c.KM_Customer_Orders}
+            </h1>
+        </center>
+
+        <div class="slds-grid">
+            <div class="slds-col slds-large-size_3-of-12 slds-medium-size_2-of-6">
+                <lightning:select name="filters" aura:id="filter-select" onchange="{!c.handleFilterChange}" value="{!v.selectedOption}">
+                    <option value="ShipToAlphaName">{!$Label.c.KM_ShipTo_Alpha_Name}</option>
+                    <option value="ShipTo">{!$Label.c.KM_ShipTo}</option>
+                    <option value="ContactName">{!$Label.c.KM_Contact_Name_SearchOption}</option>
+                    <option value="Email">{!$Label.c.KM_Email_SearchOption}</option>
+                </lightning:select>
+            </div>
+            <div class="slds-col slds-large-size_7-of-12 slds-medium-size_2-of-6">
+                <span onkeypress="{!c.handleSearchInputKeyPress}">
+                    <lightning:input value="{!v.searchInput}" placeholder="{!$Label.c.KM_Search}" onchange="{!c.handleSearchInputChange}" />
+                </span>
+            </div>
+            <div class="slds-col slds-large-size_2-of-12 slds-medium-size_1-of-6 slds-p-horizontal_small">
+                <lightning:button variant="brand" label="{!$Label.c.KM_Search}" title="{!$Label.c.KM_Search}" class="slds-m-top_medium" onclick="{!c.doSearch}" disabled="{!v.enableSearch}" />
+            </div>
+        </div>
+
+        <div class="slds-grid">
+            <aura:if isTrue="{!v.showCustomerOrderTable}">
+                <div class="slds-col slds-size_12-of-12 slds-m-top_x-small" aura:id="CustomerOrderTable">
+                    <div class="slds-card__body slds-card__body_inner">
+                        <div class="slds-table--header-fixed_container" >
+                            <div class="slds-scrollable_y" style="height:100%;">
+                                <table class="slds-table slds-line-height_reset slds-table_bordered  slds-table_cell-buffer slds-table--header-fixed shiptotable">
+                                    <colgroup>
+                                        <col style="width:14%"/>
+                                        <col style="width:14%"/>
+                                        <col style="width:19%"/>
+                                        <col style="width:14%"/>
+                                        <col style="width:14%"/>
+                                        <col style="width:19%"/>
+                                        <col style="width:6%"/>
+                                    </colgroup>
+                                    <thead>
+                                        <tr class="slds-line-height_reset">
+                                            <th scope="col" class="slds-is-sortable" id="ERP_Account_Id__c"  onclick="{!c.sortByAccounts}">
+                                                <div class="slds-truncate slds-cell-fixed"  title="ShipTo">
+                                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                        <span class="slds-assistive-text">Sort</span>
+                                                        <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_ShipTo} </span>
+                                                        <aura:if isTrue="{!and(v.AccsortAsc , v.AccselectedTabsoft1 == 'ERP_Account_Id__c')}">&nbsp;&#9660; </aura:if>
+                                                        <aura:if isTrue="{!and(!v.AccsortAsc, v.AccselectedTabsoft1 == 'ERP_Account_Id__c')}"> &nbsp;&#9650; </aura:if>
+                                                    </a>
+                                                </div>
+                                            </th>
+                                            <th scope="col" class="slds-is-sortable" id="Account_Alpha_Name__c"  onclick="{!c.sortByAccounts}">
+                                                <div class="slds-truncate slds-cell-fixed"  title="ST Alpha Name">
+                                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                        <span class="slds-assistive-text">Sort</span>
+                                                        <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_ST_Alpha_Name}</span>
+                                                        <aura:if isTrue="{!and(v.AccsortAsc , v.AccselectedTabsoft1 == 'Account_Alpha_Name__c')}">&nbsp;&#9660; </aura:if>
+                                                        <aura:if isTrue="{!and(!v.AccsortAsc, v.AccselectedTabsoft1 == 'Account_Alpha_Name__c')}"> &nbsp;&#9650; </aura:if>
+                                                    </a>
+                                                </div>
+                                            </th>
+                                            <th class="" scope="col">
+                                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="ST Address">{!$Label.c.KM_ST_Address}</div>
+                                            </th>
+                                            <th scope="col" class="slds-is-sortable" id="Primary_Bill_To__r.ERP_Account_Id__c"  onclick="{!c.sortByAccounts}">
+                                                <div class="slds-truncate slds-cell-fixed"  title="BillTo#">
+                                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                        <span class="slds-assistive-text">Sort</span>
+                                                        <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Bill_To}</span>
+                                                        <aura:if isTrue="{!and(v.AccsortAsc , v.AccselectedTabsoft1 == 'Primary_Bill_To__r.ERP_Account_Id__c')}">&nbsp;&#9660; </aura:if>
+                                                        <aura:if isTrue="{!and(!v.AccsortAsc, v.AccselectedTabsoft1 == 'Primary_Bill_To__r.ERP_Account_Id__c')}"> &nbsp;&#9650; </aura:if>
+                                                    </a>
+                                                </div>
+                                            </th>
+                                            <th scope="col" class="slds-is-sortable" id="Primary_Bill_To__r.Name"  onclick="{!c.sortByAccounts}">
+                                                <div class="slds-truncate slds-cell-fixed"  title="BT Name">
+                                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                        <span class="slds-assistive-text">Sort</span>
+                                                        <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_BT_Name}</span>
+                                                        <aura:if isTrue="{!and(v.AccsortAsc , v.AccselectedTabsoft1 == 'Primary_Bill_To__r.Name')}">&nbsp;&#9660; </aura:if>
+                                                        <aura:if isTrue="{!and(!v.AccsortAsc, v.AccselectedTabsoft1 == 'Primary_Bill_To__r.Name')}"> &nbsp;&#9650; </aura:if>
+                                                    </a>
+                                                </div>
+                                            </th>
+                                            <th class="" scope="col">
+                                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="BT Address">{!$Label.c.KM_BT_Address}</div>
+                                            </th>
+                                            <th class="" scope="col">
+                                                <div class="slds-truncate slds-cell-fixed" title="Navigation"></div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <aura:if isTrue="{!v.shipToList.length == 0}">
+                                            <tr >
+                                                <td colspan="999" data-label="Nodata" scope="col" style="text-align: center;">
+                                                    {!$Label.c.KM_No_Records_found}
+                                                </td>
+                                            </tr>
+                                        </aura:if>
+                                        <aura:iteration items="{!v.shipToList}" var="acc" indexVar="count">
+                                            <tr class="slds-hint-parent" data-id="{!acc.Id}" data-shipto="{!acc.ERP_Account_Id__c}" onclick="{!c.tableRowClicked}">
+                                                <td data-label="ShipTo" scope="col">
+                                                    <div class="slds-truncate" >{!acc.ERP_Account_Id__c}</div>
+                                                </td>
+                                                <td data-label="ST Alpha Name" scope="col">
+                                                    <div class="slds-truncate" >{!acc.Account_Alpha_Name__c}</div>
+                                                </td>
+                                                <td data-label="ST Address" scope="col">
+                                                    <div class="slds-truncate" >{!acc.Address_1__c}&nbsp;{!acc.State_f__c}&nbsp;{!acc.City_f__c}<br/>{!acc.Address_3__c}&nbsp;{!acc.Address_2__c}<br/>{!acc.Zip_Postal_Code_f__c}&nbsp;{!acc.Country__c}</div>
+                                                </td>
+                                                <td data-label="BillTo" scope="col">
+                                                    <div class="slds-truncate" >{!acc.Primary_Bill_To__r.ERP_Account_Id__c}</div>
+                                                </td>
+                                                <td data-label="BT Name" scope="col">
+                                                    <div class="slds-truncate" >{!acc.Primary_Bill_To__r.Name}</div>
+                                                </td>
+                                                <td data-label="BT Address" scope="col">
+                                                    <div class="slds-truncate" >{!acc.Primary_Bill_To__r.Address_1__c}&nbsp;{!acc.Primary_Bill_To__r.State_f__c}&nbsp;{!acc.Primary_Bill_To__r.City_f__c}<br/>{!acc.Primary_Bill_To__r.Address_3__c}&nbsp;{!acc.Primary_Bill_To__r.Address_2__c}<br/>{!acc.Primary_Bill_To__r.Zip_Postal_Code_f__c}&nbsp;{!acc.Primary_Bill_To__r.Country__c}</div>
+                                                </td>
+                                                <td data-label="Contact">
+                                                    <div class="slds-truncate" >
+                                                        <a onclick="{!c.tableRowClicked}" data-id="{!acc.Id}" data-shipto="{!acc.ERP_Account_Id__c}">
+                                                            <lightning:buttonIcon iconName="utility:chevronright"  variant="border-filled" alternativeText="Go to Account" title="Account Details" />
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </aura:iteration>
+                                    </tbody>
+                                </table>
+                                <center>
+                                    <aura:if isTrue="{!and(v.accountLength >= $Label.c.KM_Record_Limits, 2000 > v.accountLength)}">
+                                        <lightning:button label="{!$Label.c.KM_More_Records}" variant="base" onclick="{!c.viewMoreAccountRecords}"/>
+                                    </aura:if>
+                                </center>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aura:if>
+            <aura:if isTrue="{!v.showContactTable}">
+                <div class="slds-col slds-size_12-of-12 slds-m-top_x-small" aura:id="contactTable">
+                    <div class="slds-card__body slds-card__body_inner">
+                        <div class="slds-table--header-fixed_container">
+                            <div class="slds-scrollable_y">
+                                <table class="slds-table slds-line-height_reset slds-table_bordered  slds-table_cell-buffer slds-table--header-fixed contacttable">
+                                    <colgroup>
+                                        <col style="width:12%"/>
+                                        <col style="width:13%"/>
+                                        <col style="width:12%"/>
+                                        <col style="width:13%"/>
+                                        <col style="width:16%"/>
+                                        <col style="width:12%"/>
+                                        <col style="width:15%"/>
+                                        <col style="width:4%"/>
+                                    </colgroup>
+                                    <thead>
+                                        <tr class="slds-line-height_reset">
+                                            <th scope="col" class="slds-is-sortable" id="Contact.Name"  onclick="{!c.sortByContacts}">
+                                                <div class="slds-truncate slds-cell-fixed"  title="Name">
+                                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                        <span class="slds-assistive-text">Sort</span>
+                                                        <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Contact_Name}</span>
+                                                        <aura:if isTrue="{!and(v.consortCon , v.conselectedTabsoft1 == 'Contact.Name')}">&nbsp;&#9660; </aura:if>
+                                                        <aura:if isTrue="{!and(!v.consortCon, v.conselectedTabsoft1 == 'Contact.Name')}"> &nbsp;&#9650; </aura:if>
+                                                    </a>
+                                                </div>
+                                            </th>
+                                            <th scope="col" class="slds-is-sortable" id="Contact.Email"  onclick="{!c.sortByContacts}">
+                                                <div class="slds-truncate slds-cell-fixed"  title="Email">
+                                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                        <span class="slds-assistive-text">Sort</span>
+                                                        <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_Email} </span>
+                                                        <aura:if isTrue="{!and(v.consortCon , v.conselectedTabsoft1 == 'Contact.Email')}">&nbsp;&#9660; </aura:if>
+                                                        <aura:if isTrue="{!and(!v.consortCon, v.conselectedTabsoft1 == 'Contact.Email')}"> &nbsp;&#9650; </aura:if>
+                                                    </a>
+                                                </div>
+                                            </th>
+                                            <th class="" scope="col">
+                                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="Phone">{!$Label.c.KM_Phone_Number}</div>
+                                            </th>
+                                            <th scope="col" class="slds-is-sortable" id="Account.Account_Alpha_Name__c"  onclick="{!c.sortByContacts}">
+                                                <div class="slds-truncate slds-cell-fixed"  title="ST Alpha Name/ST#">
+                                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                        <span class="slds-assistive-text">Sort</span>
+                                                        <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_ST_Alpha_Name_ST} </span>
+                                                        <aura:if isTrue="{!and(v.consortCon , v.conselectedTabsoft1 == 'Account.Account_Alpha_Name__c')}">&nbsp;&#9660; </aura:if>
+                                                        <aura:if isTrue="{!and(!v.consortCon, v.conselectedTabsoft1 == 'Account.Account_Alpha_Name__c')}"> &nbsp;&#9650; </aura:if>
+                                                    </a>
+                                                </div>
+                                            </th>
+                                            <th class="" scope="col">
+                                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="ST Address">{!$Label.c.KM_ST_Address}</div>
+                                            </th>
+                                            <th scope="col" class="slds-is-sortable" id="Account.Primary_Bill_To__r.ERP_Account_Id__c"  onclick="{!c.sortByContacts}">
+                                                <div class="slds-truncate slds-cell-fixed"  title="BT Name/BT#">
+                                                    <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                        <span class="slds-assistive-text">Sort</span>
+                                                        <span class="slds-truncate" title="Product#" style="font-size: 11px; margin-left: 5px;">{!$Label.c.KM_BT_Name_BT}</span>
+                                                        <aura:if isTrue="{!and(v.consortCon , v.conselectedTabsoft1 == 'Account.Primary_Bill_To__r.ERP_Account_Id__c')}">&nbsp;&#9660; </aura:if>
+                                                        <aura:if isTrue="{!and(!v.consortCon, v.conselectedTabsoft1 == 'Account.Primary_Bill_To__r.ERP_Account_Id__c')}"> &nbsp;&#9650; </aura:if>
+                                                    </a>
+                                                </div>
+                                            </th>
+                                            <th class="" scope="col">
+                                                <div class="slds-truncate nonsortablecol slds-cell-fixed" title="BT Address">{!$Label.c.KM_BT_Address}</div>
+                                            </th>
+                                            <th class="" scope="col">
+                                                <div class="slds-truncate slds-cell-fixed" title="Navigation"></div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <aura:if isTrue="{!v.contactList.length == 0}">
+                                            <tr >
+                                                <td colspan="999" data-label="Nodata" scope="col" style="text-align: center;">
+                                                    {!$Label.c.KM_No_Records_found}
+                                                </td>
+                                            </tr>
+                                        </aura:if>
+                                        <aura:iteration items="{!v.contactList}" var="con" indexVar="count">
+                                            <tr class="slds-hint-parent" data-id="{!con.Contact.Id}" data-type="conSearchResults" onclick="{!c.tableRowClicked}">
+                                                <td data-label="Contact Name" scope="col">
+                                                    <div class="slds-truncate" >{!con.Contact.Name}</div>
+                                                </td>
+                                                <td data-label="Email" scope="col">
+                                                    <div class="slds-truncate" >{!con.Contact.Email}</div>
+                                                </td>
+                                                <td data-label="Phone" scope="col">
+                                                    <div class="slds-truncate" >{!con.Contact.Phone}</div>
+                                                </td>
+                                                <td data-label="ST Alpha Name/ST#" scope="col">
+                                                    <div class="slds-truncate" >{!con.Account.Account_Alpha_Name__c}<br/>{!con.Account.ERP_Account_Id__c}</div>
+                                                </td>
+                                                <td data-label="ST Address" scope="col">
+                                                    <div class="slds-truncate" >{!con.Account.Address_1__c}&nbsp;{!con.Account.State_f__c}&nbsp;{!con.Account.City_f__c}<br/>{!con.Account.Address_3__c}&nbsp;{!con.Account.Address_2__c}<br/>{!con.Account.Zip_Postal_Code_f__c}&nbsp;{!con.Account.Country__c}</div>
+                                                </td>
+                                                <td data-label="BT Name/BT#" scope="col">
+                                                    <div class="slds-truncate" >{!con.Account.Primary_Bill_To__r.ERP_Account_Id__c}<br/>{!con.account.Primary_Bill_To__r.Name}</div>
+                                                </td>
+                                                <td data-label="BT Address" scope="col">
+                                                    <div class="slds-truncate" >{!con.Account.Primary_Bill_To__r.Address_1__c}&nbsp;{!con.Account.Primary_Bill_To__r.State_f__c}&nbsp;{!con.Account.Primary_Bill_To__r.City_f__c}<br/>{!con.Account.Primary_Bill_To__r.Address_3__c}&nbsp;{!con.Account.Primary_Bill_To__r.Address_2__c}<br/>{!con.Account.Primary_Bill_To__r.Zip_Postal_Code_f__c}&nbsp;{!con.Account.Primary_Bill_To__r.Country__c}</div>
+                                                </td>
+                                                <td data-label="Contact">
+                                                    <div class="slds-truncate" >
+                                                        <a onclick="{!c.tableRowClicked}" data-type="conSearchResults" data-id="{!con.Id}">
+                                                            <lightning:buttonIcon iconName="utility:chevronright"  variant="border-filled" alternativeText="Go to Account" title="Account Details" />
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </aura:iteration>
+                                    </tbody>
+                                </table>
+                                <center>
+                                    <aura:if isTrue="{!and(v.conLength >= $Label.c.KM_Record_Limits, 2000 > v.conLength)}">
+                                        <lightning:button label="{!$Label.c.KM_More_Records}" variant="base" onclick="{!c.viewMoreContactRecords}"/>
+                                    </aura:if>
+                                </center>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aura:if>
+        </div>
+    </div>
+
+</aura:component>

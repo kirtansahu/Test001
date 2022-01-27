@@ -1,0 +1,141 @@
+<aura:component controller="QuoteProductSyncController" 
+                extends="c:BaseComponent" 
+                implements="force:appHostable,flexipage:availableForRecordHome,force:lightningQuickActionWithoutHeader,force:hasRecordId"
+                access="global">
+
+    <!-- attributes -->
+    <aura:attribute name="data" type="Object"/>
+    <aura:attribute name="columns" type="List"/>
+    <aura:attribute name="selectedRows" type="List"/>
+
+    <aura:attribute name="loaded" type="Boolean" default="false" />
+    <aura:attribute name="qualified" type="Boolean" default="false" />
+    <aura:attribute name="errorMessage" type="String" />
+    <aura:attribute name="quoteHeader" type="String" />
+    <aura:attribute name="oppHeader" type="String" />
+    <aura:attribute name="quotePricelist" type="String" />
+    <aura:attribute name="oppPricelist" type="String" />
+    <aura:attribute name="oppRecId" type="String" />
+    <aura:attribute name="greyButton" type="Boolean" default="true" />
+
+    <aura:attribute name="sortBy" type="String"/>
+    <aura:attribute name="sortDirection" type="String"/>
+    <aura:attribute name="maxRowSelection" type="Integer" default="200"/>
+
+    <aura:attribute name="dataNew" type="Object"/>
+    <aura:attribute name="columnsNew" type="List"/>
+
+    <!-- handlers -->
+    <aura:handler name="init" value="{!this}" action="{!c.init}"/>
+
+    <!--Custom Styles for Modal Header and Footer--> 
+    <aura:html tag="style">
+        .slds-modal__container{
+            height : 100%;
+            width: 90%;
+            max-width: 90rem;
+        }
+        .modal-body{
+            height: 900px !important;
+            max-height: 900px !important;
+            padding: 0;
+        }  
+        .slds-modal__content{
+            overflow-y:hidden !important;
+            height:unset !important;
+            max-height:unset !important;
+        }
+        .cuf-content {
+            padding: 0 0rem !important;
+        }
+    </aura:html>
+     
+    <!--Modal Header-->  
+    <div class="modal-header slds-modal__header slds-size_1-of-1">
+        <h4 class="title slds-text-heading_medium">{! $Label.c.VIEWQUOTESYNC_HEADER}</h4>
+    </div>
+    <!--End Modal Header-->  
+     
+    <!--Modal Body-->   
+    <div class="slds-modal__content slds-var-p-around_x-small slds-size_1-of-1 slds-is-relative">
+
+            <!-- markup -->
+            <aura:if isTrue="{!v.qualified}">
+                <br/><b><h1 class="slds-text-color_destructive" align="center" style="font-size:17px;">{!v.errorMessage}</h1></b><br/><br/>
+                <aura:set attribute="else">
+                    <aura:if isTrue="{!v.loaded}">
+                        <br/><b><h1 class="slds-text-color_destructive" align="center" style="font-size:17px;">{!v.errorMessage}</h1></b><br/><br/>
+                        <aura:set attribute="else">
+                            <lightning:card>
+                              <div class="slds-text-color_error slds-text-align_center">{! $Label.c.VIEWQUOTESYNC_DESCRIPTION1}</div>
+                              <div class="slds-text-color_error slds-text-align_center">{! $Label.c.VIEWQUOTESYNC_DESCRIPTION2}<br/></div>
+                                <div class="slds-grid slds-wrap">
+                                    <div class="{! ($Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet)? 'slds-size_1-of-1' : 'slds-size_1-of-2'}">
+                                      <div class="slds-box slds-var-m-around_x-small">
+                                        <div class="slds-section slds-is-open">
+                                            <h3 class="slds-section__title slds-theme_shade slds-text-align_center">
+                                              <span class="slds-truncate slds-var-p-horizontal_small slds-text-color_default" title="Section Title"  style="font-size:15px;"><b>{!v.quoteHeader}</b></span>
+                                            </h3>
+                                            <h4 class="slds-section__title slds-theme_shade slds-text-align_center">
+                                              <span class="slds-truncate slds-var-p-horizontal_small slds-text-color_default" title="Section Title"  style="font-size:12px;"><b>PriceList: {!v.quotePricelist}</b></span>
+                                            </h4>
+                                          </div>
+                                        <div style="height: 250px;">
+                                            <lightning:datatable aura:Id="product-table"
+                                                            columns="{!v.columns}"
+                                                            data="{!v.data}"
+                                                            keyField="Id"
+                                                            selectedRows="{!v.selectedRows}"
+                                                            sortedBy="{!v.sortBy}"
+                                                            sortedDirection="{!v.sortDirection}"
+                                                            onsort="{!c.handleSort}"
+                                                            onrowselection="{!c.enableSyncButton}"
+                                                            maxRowSelection="{!v.maxRowSelection}"/><br/>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div class="{! ($Browser.isIPad || $Browser.isIPhone || $Browser.isPhone || $Browser.isTablet)? 'slds-size_1-of-1' : 'slds-size_1-of-2'}">
+                                      <div class="slds-box slds-var-m-around_x-small">
+                                        <div class="slds-section slds-is-open">
+                                            <h3 class="slds-section__title slds-theme_shade slds-text-align_center">
+                                              <span class="slds-truncate slds-var-p-horizontal_small slds-text-color_default" title="Section Title" style="font-size:15px;"><b>{!v.oppHeader}</b></span>
+                                            </h3>
+                                            <h4 class="slds-section__title slds-theme_shade slds-text-align_center">
+                                              <span class="slds-truncate slds-var-p-horizontal_small slds-text-color_default" title="Section Title"  style="font-size:12px;"><b>PriceList: {!v.oppPricelist}</b></span>
+                                            </h4>
+                                          </div>
+                                        <div style="height: 250px;">
+                                            <lightning:datatable aura:Id="lineitem-table"
+                                                            columns="{!v.columnsNew}"
+                                                            data="{!v.dataNew}" 
+                                                            keyField="Id"
+                                                            hideCheckboxColumn="true"
+                                                            sortedBy="{!v.sortBy}"
+                                                            sortedDirection="{!v.sortDirection}"
+                                                            onsort="{!c.handleSort}"/><br/>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                            </lightning:card>
+                        </aura:set>
+                    </aura:if>
+                </aura:set>
+            </aura:if>
+
+    </div>
+    <!--End of Modal Body--> 
+     
+    <!--Modal Footer-->
+    <div class="modal-footer slds-modal__footer slds-size_1-of-1 slds-align_absolute-center">
+        <aura:if isTrue="{!v.loaded}">
+            <lightning:button variant="Neutral" class="slds-button" label="Cancel" onclick="{!c.handleExit}"/>
+            <aura:set attribute="else">
+                <lightning:button variant="Brand" class="slds-button" label="Copy to Opp" onclick="{!c.handleSave}" disabled="{!v.greyButton}" />
+                <lightning:button variant="Neutral" class="slds-button" label="Cancel" onclick="{!c.handleExit}"/>
+            </aura:set>
+        </aura:if>
+    </div>
+    <!--End of Modal Footer-->
+
+</aura:component>

@@ -1,0 +1,422 @@
+<aura:component controller="KMCustomersOrdersCls">
+
+    <aura:attribute name="reOrderHistory" type="List"/>
+    <aura:attribute name="allReOrderHistory" type="List"/>
+    <aura:attribute name="ShipToNumber" type="String"/>
+    <aura:attribute name="selectedOption" type="String"/>
+    <aura:attribute name="searchInput" type="String"/>
+    <aura:attribute name="AllOrderTypes" type="List" default="['SO','SE','TC','TC unbilled','T9']"/>
+    <aura:attribute name="AllStatuses" type="List" default="['Entered','In Progress','Backorder','Shipped','Cancelled']"/>
+
+    <aura:attribute name="reOrderFilterBox" type="String"/>
+    <aura:attribute name="fromDate" type="Date" />
+    <aura:attribute name="toDate" type="Date"/>
+    <aura:attribute name="mindatevalues" type="date"/>
+    <aura:attribute name="maxdatevalues" type="date"/>
+    <aura:attribute name="fromTableDate" type="Date" />
+    <aura:attribute name="toTableDate" type="Date"/>
+
+    <aura:attribute name="isAsc" type="Boolean" default="true" description="boolean flag for pass sorting condition to apex class"/>
+    <aura:attribute name="sortField" type="String" />
+    <aura:attribute name="sortAsc" type="Boolean"  />
+    <aura:attribute name="sortDirection" type="String"/>
+    <aura:attribute name="selectedTabsoft" type="String" default="OrderNumber" description="Use for show/hide arraow sign on header based on conditions"/>
+
+    <aura:attribute name="showOrderTypeFilter" type="Boolean"  default="false"/>
+    <aura:attribute name="showFilterBox" type="Boolean"  default="true"/>
+    <aura:attribute name="disableFilterBox" type="Boolean"  default="true"/>
+    <aura:attribute name="showOrderTypeFltr" type="Boolean"  default="false"/>
+    <aura:attribute name="showStatusFltr" type="Boolean" />
+    <aura:attribute name="showDateFltr" type="Boolean"  />
+    <aura:attribute name="disableApplyBtn" type="Boolean" default="true"/>
+    <aura:attribute name="disableClearBtn" type="Boolean" default="true"/>
+    <aura:attribute name="showOrderHistoryBySKUInfo" type="Boolean" default="true"/>
+    <aura:attribute name="showPAScreen" type="Boolean" default="false" />
+    <aura:attribute name="roSelectedRecords" type="Object[]" default="[]"/>
+    <aura:attribute name="t9SelectedRecords" type="Object[]" default="[]"/>
+    <aura:attribute name="emailSelectedRecords" type="Object[]" default="[]"/>
+    <aura:attribute name="accountRecord" type="Account" />
+    <aura:attribute name="showWarning" type="Boolean" default="false" access="private"/>
+    <aura:attribute name="warningMessage" type="String" access="private" />
+    <aura:attribute name="oldShipToNumber" type="String"/>
+    <aura:attribute name="newShipToNumber" type="String"/>
+    <aura:attribute name="oldShipToName" type="String"/>
+    <aura:attribute name="orderDetails" type="Object"/>
+    <aura:attribute name="quickOrderData" type="Object[]" />
+    <aura:attribute name="currencyCode" type="String" default="KRW" access="private"/>
+    <aura:attribute name="totalAmount" type="String" access="private"/>
+    <aura:attribute name="showShipToPopup" type="Boolean" default="false" />
+    <aura:attribute name="showSpinner" type="Boolean"  default="false" access="private"/>
+    <aura:attribute name="savedOrderDetails" type="Object" default="{}"/>
+    <aura:attribute name="savedProducts" type="List" default="[]"/>
+    <aura:attribute name="showOrderTypePopup" type="Boolean" default="false" />
+    <aura:attribute name="disableToDateField" type="Boolean" default="false" />
+    <aura:attribute name="filterType" type="String" default="Filter By" />
+    <aura:attribute name="selectedOptions" type="List" />
+    <aura:attribute name="selectedLabel" type="String" default="Select a value.." />
+    <aura:attribute name="hasT9EligibleOrders" type="Boolean" access="private" />
+
+    <aura:attribute name="tableMessage" type="String" default="" access="private" />
+    <aura:attribute name="showDifferentShipToT9Message" type="Boolean" default="false" access="private" />
+
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:handler name="change" value="{!v.fromTableDate}" action="{!c.checkDateValidation}"/>
+    <aura:handler name="change" value="{!v.toTableDate}" action="{!c.checkDateValidation}"/>
+
+    <aura:registerEvent name="KMAddSelectedItemsToCart" type="c:KMAddSelectedItemsToCart"/>
+
+    <aura:if isTrue="{!v.showSpinner}">
+        <lightning:spinner alternativeText="Loading" size="large" variant="brand"/>
+    </aura:if>
+
+    <!-- Primary Filter and buttons -->
+    <div>
+        <aura:if isTrue="{!v.showOrderHistoryBySKUInfo}">
+            <div class="slds-grid slds-m-bottom_small slds-wrap">
+                <!-- Primary date filter -->
+                <div class="slds-col slds-size_2-of-3 slds-grid">
+                    <div class="slds-col slds-size_2-of-10 slds-align_absolute-center">
+                        <b>{!$Label.c.KM_Order_Date}&nbsp;{!$Label.c.KM_From}:</b>
+                    </div>
+                    <div class="slds-col slds-size_2-of-10 slds-p-left_xx-small">
+                        <lightning:input type="date" aura:id="orderFromDateInput" value="{!v.fromDate}"  variant="label-hidden" onchange="{!c.dochnagesondates}"/>
+                    </div>
+                    <div class="slds-col slds-size_2-of-10 slds-p-left_xxx-small slds-align_absolute-center">
+                        <b>{!$Label.c.KM_Order_Date}&nbsp;{!$Label.c.KM_To}:</b>
+                    </div>
+                    <div class="slds-col slds-size_2-of-10 slds-p-left_xx-small">
+                        <lightning:input type="date" aura:id="orderToDateInput" value="{!v.toDate}" min="{!v.mindatevalues}" max="{!v.maxdatevalues}" variant="label-hidden" disabled="{!v.disableToDateField}" onchange="{!c.toDateFieldChanged}"/>
+                    </div>
+                    <div class="slds-col slds-size_2-of-10">
+                        <lightning:button variant="brand" label="{!$Label.c.KM_Search}" class="slds-m-left_x-small" onclick="{!c.applyReOrderFilter}" disabled="false"></lightning:button>
+                    </div>
+                    <div class="slds-col slds-size_2-of-10">
+                        <lightning:button variant="brand" label="{!$Label.c.KM_Reorder}" class="slds-m-left_x-small" onclick="{!c.openReorderPATable}" disabled="{!v.roSelectedRecords.length == 0}" />
+                    </div>
+                    <div class="slds-col slds-size_2-of-10">
+                        <lightning:button variant="brand" label="{!$Label.c.KM_T9_Process}" class="slds-m-left_x-small slds-m-right_xx-small" onclick="{!c.createT9Order}" disabled="{!v.t9SelectedRecords.length == 0}" />
+                    </div>
+                    <div class="slds-col slds-size_2-of-10">
+                        <lightning:button variant="brand" label="{!$Label.c.KM_Email}" class="slds-m-left_x-small slds-m-right_xx-small" onclick="{!c.sendEmailWithSelectedRecords}" disabled="{!v.emailSelectedRecords.length == 0}" />
+                    </div>
+                    <div class="slds-col slds-size_2-of-10">
+                        <a>
+                            <lightning:icon iconName="doctype:excel" alternativeText="ExportToExcel" title="ExportToExcel" onclick="{!c.downloadcsv}"/>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- Local data filters -->
+            <aura:if isTrue="{!v.allReOrderHistory.length > 0}">
+                <div class="slds-grid slds-m-vertical_medium slds-m-left_small">
+                    <div class="slds-col slds-size_2-of-12 slds-p-right_x-small">
+                        <lightning:select name="reOrderField" aura:id="reOrderField" onchange="{!c.showFilterOption}" variant="label-hidden" value="{!v.filterType}">
+                            <option value="Filter By" >{!$Label.c.KM_Filter_by}</option>
+                            <option value="OrderDate">{!$Label.c.KM_Order_Date}</option>
+                            <option value="OrderNum">{!$Label.c.KM_Order}</option>
+                            <option value="OrderType">{!$Label.c.KM_Order_Type}</option>
+                            <option value="OrderLineNum">{!$Label.c.KM_Line}</option>
+                            <option value="ProductName">{!$Label.c.KM_Product}</option>
+                            <option value="NextStatus">{!$Label.c.KM_Status}</option>
+                        </lightning:select>
+                    </div>
+
+                    <aura:if isTrue="{!v.showFilterBox}">
+                        <div class="slds-col slds-size_2-of-12">
+                            <lightning:input value="{!v.reOrderFilterBox}" aura:id="InputSearchBox" disabled="{!v.disableFilterBox}" variant="label-hidden" />
+                        </div>
+                    </aura:if>
+
+                    <aura:if isTrue="{!v.showOrderTypeFltr}">
+                        <div class="slds-col slds-size_3-of-10">
+                            <c:KMFieldDepency mslabel="" maxSelectedShow="1" msoptions="{!v.AllOrderTypes}" showFilterInput="false" showRefreshButton="false" showClearButton="false" aura:id="OrderTypeId" selectedOptions="{!v.selectedOptions}" selectedLabel="{!v.selectedLabel}"/>
+                        </div>
+                    </aura:if>
+
+                    <aura:if isTrue="{!v.showStatusFltr}">
+                        <div class="slds-col slds-size_3-of-10">
+                            <c:KMFieldDepency mslabel="" maxSelectedShow="1" msoptions="{!v.AllStatuses}" showFilterInput="false" showRefreshButton="false" showClearButton="false" aura:id="OrderStatusesId" selectedOptions="{!v.selectedOptions}" selectedLabel="{!v.selectedLabel}"/>
+                        </div>
+                    </aura:if>
+
+                    <aura:if isTrue="{!v.showDateFltr}">
+                        <div class="slds-col slds-size_1-of-12 slds-m-left_x-small slds-m-top_x-small" style="width: 42px;">
+                            <b>From:</b>
+                        </div>
+                        <div class="slds-col slds-size_2-of-12">
+                        <ui:inputDate aura:id="fromField" value="{!v.fromTableDate}" displayDatePicker="true" format="yyyy/MM/dd" />
+                        </div>
+                        <div class="slds-col slds-size_1-of-12 slds-m-left_x-small slds-m-top_x-small" style="width: 25px;">
+                            <b>To:</b>
+                        </div>
+                        <div class="slds-col slds-size_2-of-12 todateStyle">
+                            <ui:inputDate aura:id="EndField" value="{!v.toTableDate}" displayDatePicker="true" format="yyyy/MM/dd" />
+                        </div>
+                    </aura:if>
+
+                    <div class="slds-col slds-size_3-of-10">
+                        <lightning:button variant="brand" label="{!$Label.c.KM_Apply}" class="slds-m-left_x-small" onclick="{!c.applyFilterToTable}" disabled="{!v.disableApplyBtn}" aura:id="applyfilterBtn" />
+                        <lightning:button variant="brand" label="{!$Label.c.KM_Clear}" class="slds-m-right_small" onclick="{!c.clearReOrderBox}" disabled="{!v.disableClearBtn}" aura:id="clearfilterBtn" />
+                    </div>
+
+                    <div class="slds-col slds-size_3-of-12">
+                        <aura:if isTrue="{!(v.t9SelectedRecords.length != 0)}">
+                            <div class="slds-text-color_destructive" >{!$Label.c.KM_Total}&nbsp;{!$Label.c.KM_Amount}:&nbsp;{!v.currencyCode}&nbsp;{!v.totalAmount }</div>
+                        </aura:if>
+                    </div>
+                </div>
+            </aura:if>
+
+            <!-- Data table -->
+            <div class="slds-card__body slds-card__body_inner">
+                <div class="slds-table--header-fixed_container" style="height:300px;">
+                    <div class="slds-scrollable_y" style="height:100%;">
+                        <table class="slds-table slds-line-height_reset slds-table_bordered  slds-table_cell-buffer slds-table--header-fixed">
+                            <colgroup>
+                                <col style="width:7%"/>
+                                <col style="width:5%"/>
+                                <col style="width:9%"/>
+                                <col style="width:9%"/>
+                                <col style="width:11%"/>
+                                <col style="width:7%"/>
+                                <col style="width:13%"/>
+                                <col style="width:10%"/>
+                                <col style="width:9%"/>
+                                <col style="width:9%"/>
+                                <col style="width:8%"/>
+                                <col style="width:3%"/>
+                            </colgroup>
+                            <thead>
+                                <tr class="">
+                                    <th scope="col" >
+                                        <div class="slds-truncate slds-grid slds-cell-fixed nonsortablecol" style="background-color: transparent;" title="T9">
+                                            <span class="slds-size_1-of-2">
+                                                <lightning:input aura:id="t9CheckAllInput" onchange="{!c.checkAllT9}" type="checkbox" disabled="{!!v.hasT9EligibleOrders}" />
+                                            </span>
+                                            <span class="slds-size_1-of-2">{!$Label.c.KM_T9}</span>
+                                        </div>
+                                    </th>
+                                    <th scope="col">
+                                        <div class="slds-truncate slds-p-left_x-small slds-cell-fixed nonsortablecol" title="RO">{!$Label.c.KM_RO}</div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="OrderDate" onclick="{!c.sorter}">
+                                        <div class="slds-truncate slds-cell-fixed" title="Order Date">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="Order Date">{!$Label.c.KM_Order_Date}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc , v.selectedTabsoft == 'OrderDate')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc,v.selectedTabsoft == 'OrderDate' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="OrderNum" onclick="{!c.sorter}">
+                                        <div class="slds-truncate slds-cell-fixed" title="Order#"  data-id="OrderId">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="Order#">{!$Label.c.KM_Order}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc , v.selectedTabsoft == 'OrderNum')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc,v.selectedTabsoft == 'OrderNum' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="OrderType" onclick="{!c.sorter}">
+                                        <div class="slds-truncate slds-cell-fixed" title="Order Type">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="Order Type">{!$Label.c.KM_Order_Type}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc , v.selectedTabsoft == 'OrderType')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc,v.selectedTabsoft == 'OrderType' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="OrderLineNum" onclick="{!c.sorter}">
+                                        <div class="slds-truncate slds-cell-fixed" title="Line#">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title=" Line#">{!$Label.c.KM_Line}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc , v.selectedTabsoft == 'OrderLineNum')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc,v.selectedTabsoft == 'OrderLineNum' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="ProductName" onclick="{!c.sorter}" style="max-width: 170px;">
+                                        <div class="slds-truncate slds-cell-fixed" title="ProductName" >
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="ProductName">{!$Label.c.KM_Product}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc , v.selectedTabsoft == 'ProductName')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc,v.selectedTabsoft == 'ProductName' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" id="Quantity">
+                                        <div class="slds-truncate slds-cell-fixed nonsortablecol" title="Quantity">{!$Label.c.KM_Quantity}</div>
+                                    </th>
+                                    <th scope="col" id="CustomerPrice">
+                                        <div class="slds-truncate slds-cell-fixed nonsortablecol" title="Customer Price">{!$Label.c.KM_Customer_Price}</div>
+                                    </th>
+                                    <th scope="col" id="Amount">
+                                        <div class="slds-truncate slds-cell-fixed nonsortablecol" title="Amount">{!$Label.c.KM_Amount}</div>
+                                    </th>
+                                    <th scope="col" class="slds-is-sortable" id="NextStatus" onclick="{!c.sorter}">
+                                        <div class="slds-truncate slds-cell-fixed" title="NextStatus">
+                                            <a href="javascript:void(0);" class="slds-th__action slds-text-link--reset addcolour"  style="padding: .0rem" >
+                                                <span class="slds-assistive-text">Sort</span>
+                                                <span class="slds-truncate" title="NextStatus"> {!$Label.c.KM_Status}</span>
+                                                <aura:if isTrue="{!and(v.sortAsc , v.selectedTabsoft == 'NextStatus')}">&nbsp;  &#9660; </aura:if>
+                                                <aura:if isTrue="{!and(!v.sortAsc,v.selectedTabsoft == 'NextStatus' )}"> &nbsp;  &#9650; </aura:if>
+                                            </a>
+                                        </div>
+                                    </th>
+                                    <th scope="col" >
+                                        <div class="slds-truncate slds-grid slds-cell-fixed nonsortablecol" style="background-color: transparent;" title="Email">
+                                            <span class="slds-size_1-of-2">{!$Label.c.KM_Email}</span>
+                                            <span class="slds-size_1-of-2">
+                                                <lightning:input aura:id="emailCheckAllInput" onchange="{!c.checkAllEmail}" type="checkbox"/>
+                                            </span>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <aura:if isTrue="{!v.tableMessage != ''}">
+                                    <tr >
+                                        <td colspan="999" data-label="Nodata" scope="col" style="text-align: center;">
+                                            {!v.tableMessage}
+                                        </td>
+                                    </tr>
+                                </aura:if>
+                                <aura:iteration items="{!v.reOrderHistory}" var="RO" indexVar="key">
+                                    <tr class=""  onclick="{!c.showRow }"  data-id="{!RO}">
+                                        <td data-label="T9" scope="col">
+                                            <div class="slds-truncate" ><lightning:input aura:id="t9Checkbox" onchange="{!c.t9CheckboxSelectDeselect}" type="checkbox" value="{!RO}" disabled="{!not(and(and(RO.OrderType == 'TC', RO.T9OrderNum == '0'), RO.NextStatus == 'Shipped'))}"/></div>
+                                        </td>
+                                        <td data-label="RO" scope="col">
+                                            <div class="slds-truncate" ><lightning:input aura:id="roCheckbox" onchange="{!c.roCheckboxSelectDeselect}" type="checkbox" value="{!RO}"/></div>
+                                        </td>
+                                        <td data-label="Order Date" scope="col">
+                                            <div class="slds-truncate" >{!RO.OrderDate}
+                                                <br/>
+                                                <aura:if isTrue="{!and(RO.OrderType=='T9', RO.OriginalOrderLineNo!='0')}">
+                                                    (OR LINKED)
+                                                </aura:if>
+                                                <aura:if isTrue="{!and(RO.OrderType=='TC', RO.T9OrderNum != '0')}">
+                                                    (OR LINKED)
+                                                </aura:if>
+                                            </div>
+                                        </td>
+                                        <td data-label="Order#" scope="col">
+                                            <div class="slds-truncate" >{!RO.OrderNum}
+                                                <br/>
+                                                <aura:if isTrue="{!RO.OrderType=='T9'}">
+                                                    {!RO.OriginalOrderNum}
+                                                </aura:if>
+                                                <aura:if isTrue="{!and(RO.OrderType=='TC', RO.T9OrderNum != '0')}">
+                                                    {!RO.T9OrderNum}
+                                                </aura:if>
+                                            </div>
+                                        </td>
+                                        <td data-label="Order Type" scope="col">
+                                            <div class="slds-truncate" >{!RO.OrderType}
+                                                <br/>
+                                                <aura:if isTrue="{!RO.OrderType=='T9'}">
+                                                    {!RO.OriginalOrderType}
+                                                </aura:if>
+                                                <aura:if isTrue="{!and(RO.OrderType=='TC', RO.T9OrderNum != '0')}">
+                                                    {!RO.T9OrderType}
+                                                </aura:if>
+                                            </div>
+                                        </td>
+                                        <td data-label="Line#" scope="col">
+                                            <div class="slds-truncate" >{!RO.OrderLineNum}
+                                                <br/>
+                                                <aura:if isTrue="{!and(RO.OrderType=='T9', RO.OriginalOrderLineNo!='0')}">
+                                                    {!RO.OriginalOrderLineNo}
+                                                </aura:if>
+                                                <aura:if isTrue="{!and(RO.OrderType=='TC', RO.T9OrderNum != '0')}">
+                                                    {!RO.T9OrderLineNum}
+                                                </aura:if>
+                                            </div>
+                                        </td>
+                                        <td data-label="Product" scope="col" style="max-width: 170px;" >
+                                            <div class="slds-truncate" >{!RO.ProductName}<br/><b>Product#:</b>{!RO.ProductNo}<br/><b>Unit Size:</b>{!RO.UnitSize}</div>
+                                        </td>
+                                        <td data-label="Quantity" scope="col">
+                                            <div class="slds-truncate" >{!RO.Quantity}</div>
+                                        </td>
+                                        <td data-label="Customer Price" scope="col">
+                                            <div class="slds-truncate" >{!RO.CurrencyCode}&nbsp;{!RO.CustomerPrice}</div>
+                                        </td>
+                                        <td data-label="Amount" scope="col">
+                                            <div class="slds-truncate" >{!RO.CurrencyCode}&nbsp;{!RO.Amount }</div>
+                                        </td>
+                                        <td data-label="NextStatus" scope="col">
+                                            <div class="slds-truncate" >{!RO.NextStatus}</div>
+                                        </td>
+                                        <td data-label="Email" scope="col">
+                                            <div class="slds-truncate">
+                                                <lightning:input aura:id="emailCheckbox" onchange="{!c.emailCheckboxSelectDeselect}" type="checkbox" value="{!RO}"/>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </aura:iteration>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="demo-only demo-only demo-only_viewport demo--inverse slds-hide" style="height:100%" aura:id="spinnerId">
+                    <div class="slds-spinner_container slds-is-fixed">
+                        <div role="status" class="slds-spinner slds-spinner_medium">
+                            <span class="slds-assistive-text">Loading</span>
+                            <div class="slds-spinner__dot-a"></div>
+                            <div class="slds-spinner__dot-b"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aura:if>
+
+        <aura:if isTrue="{!v.showPAScreen}">
+            <lightning:buttonIcon iconName="utility:back"  variant="border-filled"  title="Back To Page" onclick="{!c.backToOrders}" />
+            <c:KMProductTab listofproducts="{!v.roSelectedRecords}" showReorderPATable="true" showSearchBox="false" accountRec="{!v.accountRecord}" savedOrderDetails="{!v.savedOrderDetails}"/>
+        </aura:if>
+
+        <aura:if isTrue="{!v.showWarning}">
+            <section role="dialog" tabindex="-1" aria-label="Meaningful description of the modal content" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                  <header class="slds-modal__header slds-modal__header_empty">
+                  </header>
+                  <div class="slds-text-heading_small slds-text-align_center slds-modal__content slds-p-around_medium warningModal" id="modal-content-id-1">
+                    <p>{!v.warningMessage}</p>
+                  </div>
+                  <footer class="slds-text-heading_small slds-modal__footer warningModal">
+                    <lightning:button variant="neutral" label="OK" class="slds-align_absolute-center slds-button slds-button_neutral slds-button_full-width" onclick="{!c.closeWarningModal}" />
+                  </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </aura:if>
+    </div>
+
+    <c:KMShipToNumValidation showShipToPopup="{!v.showShipToPopup}"
+        oldShipToNumber="{!v.oldShipToNumber}" shipToName="{!v.oldShipToName}"
+        orderDetails="{!v.orderDetails}" orderedProducts="{!v.quickOrderData}"
+        showOrderTypePopup="{!v.showOrderTypePopup}"/>
+
+    <aura:if isTrue="{!v.showDifferentShipToT9Message}">
+        <section role="dialog" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container" style="width: 550px;">
+                <div class="slds-modal__content slds-p-around_medium">
+                    {!$Label.c.KM_T9_Order_Warning_Msg}
+                </div>
+                <footer class="slds-modal__footer">
+                    <div class="slds-align_absolute-center">
+                        <lightning:button label="Ok" onclick="{!c.handleDifferentShipToT9Message}"/>
+                    </div>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </aura:if>
+
+</aura:component>

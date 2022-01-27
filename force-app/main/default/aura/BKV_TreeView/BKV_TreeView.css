@@ -1,0 +1,13 @@
+.THIS {
+    background: white;
+    padding: 1rem;
+    border-radius: 5px;
+}
+
+.THIS .slds-show-true{
+    display: block;
+}
+
+.THIS .slds-show-false{
+    display: none;
+}

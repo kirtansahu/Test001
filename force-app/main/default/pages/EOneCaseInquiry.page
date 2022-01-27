@@ -1,0 +1,31 @@
+<apex:page standardController="Case" StandardStyleSheets="true" lightningStylesheets="true" showHeader="true" sidebar="false" title="EOne Case Inquiry">
+    <apex:slds />
+    <apex:includeScript value="/support/console/48.0/integration.js"/>
+    <apex:form id="frm">
+        <script type="text/javascript">
+        function openEOneCaseInquiry(){
+            var urlToOpen = '{!$Label.EOne_Case_Inquiry_URL}';
+            urlToOpen = urlToOpen.replace('{Case.E1_Case_Number__c}', '{!Case.E1_Case_Number__c}');
+            window.open(urlToOpen);
+            closeCurrentSubTab();
+        }
+        
+        function closeCurrentSubTab() {
+            if(sforce.console.isInConsole()) {
+                //First find the ID of the current tab to close it
+                sforce.console.getEnclosingTabId(closeSubtab);
+            }else{
+                window.parent.location.href= '/{!Case.Id}';
+            }
+        }
+        
+        var closeSubtab = function closeSubtab(result) {
+            //Now that we have the tab ID, we can close it
+            var tabId = result.id;
+            sforce.console.closeTab(tabId);
+        }
+        
+        openEOneCaseInquiry();
+        </script>
+    </apex:form>
+</apex:page>

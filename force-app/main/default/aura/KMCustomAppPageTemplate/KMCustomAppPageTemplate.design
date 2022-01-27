@@ -1,0 +1,7 @@
+<design:component label="Custom Template for Dou-Mi">
+
+    <flexipage:template >
+        <flexipage:region name="container" defaultWidth="LARGE" />
+    </flexipage:template>
+
+</design:component>

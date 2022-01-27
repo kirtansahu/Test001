@@ -1,0 +1,104 @@
+<!--
+    Component: QuickOrderForm
+    Purpose: Component for QuickOrderForm display
+    Author: Sreenivas (Keste)
+    Created Date: 26th May 2020
+-->
+<aura:component controller="KMQuickOrderFormService">
+    <!--Attributes-->
+    <aura:attribute name="accountRec" type="account" description=""/>
+    <aura:attribute name="contactRec" type="contact" description=""/>
+    <aura:attribute name="quickOrderData" type="Object[]" description=""/>
+    <aura:attribute name="orderedProducts" type="Object[]" description=""/>
+    <aura:attribute name="orderDetails" type="Object"/>
+    <aura:attribute name="oldShipToNumber" type="string"/>
+    <aura:attribute name="newShipToNumber" type="string"/>
+    <aura:attribute name="oldShipToName" type="string"/>
+    <aura:attribute name="oldOrderType" type="string"/>
+    <aura:attribute name="selectedOption" type="String"/>
+    <aura:attribute name="searchInput" type="String"/>
+    <!--Spinner Attribute-->
+    <aura:attribute name="showSpinnerStatus" type="boolean" default="false"/>
+    <aura:attribute name="showShipToPopup" type="boolean" default="false"/>
+    <aura:attribute name="showOrderTypePopup" type="boolean" default="false"/>
+    <!--Event Handlers-->
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:handler name="refreshOrderForm" event="c:KMRefreshOrderForm" action="{!c.refreshOrderForm}"/>
+    <center>
+        <div class="slds-page-header" style="font-size: 15px;">
+            <b>{!$Label.c.KM_Quick_Order_Capture}</b>
+        </div>
+    </center>
+    <br/>
+    <div class="slds-box">
+        <p>
+            <b>{!$Label.c.KM_Quick_Order_Capture_HeaderMsg}</b>
+        </p>
+        <br/>
+        <div class="" style="height:250px;">
+            <div class="slds-scrollable_y" style="height:100%;">
+                <table class="slds-table slds-wrap slds-table--cell-buffer slds-table--striped--align-space slds-table--cell-buffer slds-max-medium-table--stacked-horizontal">
+                    <thead>
+                        <tr class="quickOrderRowCls">
+                            <th scope="col" style="background-color: rgb(243, 242, 242);">
+                                <div class="slds-truncate" title="{!$Label.c.KM_Product}" >
+                                    <b>{!$Label.c.KM_Product}</b>
+                                </div>
+                            </th>
+                            <th scope="col" style="width: 160px; background-color: rgb(243, 242, 242);" >
+                                <div class="slds-truncate" title="{!$Label.c.KM_Quantity}" >
+                                    <b>{!$Label.c.KM_Quantity}</b>
+                                </div>
+                            </th>
+                            <th scope="col" style="background-color: rgb(243, 242, 242);">
+                                <div class="slds-truncate" title="{!$Label.c.KM_Lot_Number}" >
+                                    <b>{!$Label.c.KM_Lot_Number}</b>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <aura:iteration items="{!v.quickOrderData}" var="eachQuickOrder">
+                            <tr class="slds-hint-parent" data-rowid="{!eachQuickOrder.rowId}">
+                                <td data-label="Product#" scope="col">
+                                    <lightning:input variant="label-hidden" aura:id="productInputId" 
+                                    name="productNumber" value="{!eachQuickOrder.productNumber}" 
+                                    onfocus="{!c.removeStyles}"/>
+                                </td>
+                                <td data-label="Quantity" scope="col">
+                                    <lightning:input aura:id="quantity" type="number" variant="label-hidden" 
+                                    name="quantity" value="{!eachQuickOrder.quantity}" min="1" max="999"/>
+                                </td>
+                                <td data-label="Lot#" scope="col">
+                                    <lightning:input variant="label-hidden" name="lotNumber" 
+                                    value="{!eachQuickOrder.lotNumber}"/>
+                                </td>
+                            </tr>
+                        </aura:iteration>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div><br/>
+    <div class="slds-float_right">
+        <lightning:button label="{!$Label.c.KM_AddToOrderForm}" variant="brand" onclick="{!c.addToOrderForm}" />
+    </div>
+    
+    <!-- START SPINNER PANEL-->
+    <aura:if isTrue="{!v.showSpinnerStatus}">
+        <div class="demo-only demo-only demo-only_viewport demo--inverse">
+            <div class="slds-spinner_container slds-is-fixed">
+                <div role="status" class="slds-spinner slds-spinner_medium">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+    <!-- END SPINNER PANEL-->
+    <!-- Popup for shiptonumber validation-->
+    <c:KMShipToNumValidation showOrderTypePopup="{!v.showOrderTypePopup}" showShipToPopup="{!v.showShipToPopup}" oldShipToNumber="{!v.oldShipToNumber}"
+    shipToName="{!v.oldShipToName}" orderDetails="{!v.orderDetails}" orderedProducts="{!v.orderedProducts}"/>
+
+</aura:component>

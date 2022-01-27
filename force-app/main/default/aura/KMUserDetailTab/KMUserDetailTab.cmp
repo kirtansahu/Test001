@@ -1,0 +1,77 @@
+<aura:component controller="KMUserDetailTabCtrl" access="public" >
+
+    <aura:attribute name="userData" type="User"/>
+    <aura:attribute name="isLoaded" type="Boolean" default="false" access="private" />
+    <aura:attribute name="showSpinner" type="Boolean" default="false" access="private" />
+    <aura:attribute name="selectedLanguageKey" type="String" access="private" />
+
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+
+    <div class="c-container">
+        <aura:if isTrue="{!v.isLoaded}">
+            <div>
+                <div class="slds-text-heading_small slds-text-align_center bolder">
+                   {!$Label.c.KM_My_Account}
+                </div>
+
+                <div class="slds-text-heading_medium slds-m-bottom--xx-small bolder">
+                   <span class="slds-p-right_x-small">{!$Label.c.KM_Welcome}</span>
+                   <span>{!v.userData.LastName}, {!v.userData.FirstName}</span>
+                </div>
+
+                <div class="slds-box slds-form--stacked slds-p-around--medium slds-m-bottom-x-small">
+                    <div class="slds-text-heading_small bolder bottomBorder">
+                        {!$Label.c.KM_Your_Info_Header}
+                    </div>
+                    <div class="slds-p-top_small slds-form-element">
+                        <b>{!$Label.c.KM_Name}: </b>{!v.userData.LastName}, {!v.userData.FirstName}<br/><br/>
+                        <b>{!$Label.c.KM_Title}: </b>{!v.userData.Title}<br/><br/>
+                        <b>{!$Label.c.KM_Email}: </b>{!v.userData.Email}<br/><br/>
+                        <b>{!$Label.c.KM_Phone_Number}: </b>{!v.userData.Phone}<br/>
+                    </div>
+                </div>
+
+                <div class="slds-m-top_small slds-p-bottom_small slds-box slds-box slds-form--stacked slds-p-around--medium slds-m-bottom_medium slds-m-bottom_x-small">
+                    <div class="slds-m-bottom_small slds-text-heading_small bolder slds-m-bottom_xxx-small bottomBorder">
+                        {!$Label.c.KM_Settings}
+                    </div>
+                    <div>
+                        <b>{!$Label.c.KM_Language}</b>
+                        <div class="slds-grid slds-wrap slds-m-top_xxx-small">
+                            <lightning:select name="user-language" value="{!v.selectedLanguageKey}">
+                                <option value="en_US">English</option>
+                                <option value="ko">Korean</option>
+                            </lightning:select>
+                        </div><br/>
+                        <b>{!$Label.c.KM_PORefNumber}</b>
+                        <div class="slds-size_x-small slds-m-top_xxx-small">
+                            <lightning:input value="{!v.userData.PO_Ref_Number__c}" placeholder="{!$Label.c.KM_PORefNumber}" maxlength="27"/>
+                        </div><br/>
+                        <b>{!$Label.c.KM_OrderFormState}</b>
+                        <div class="slds-size_x-small slds-m-top_xxx-small">
+                            <lightning:select name="user-language" value="{!v.userData.Order_Form_State__c}">
+                                <option value="Pending">Pending</option>
+                                <option value="Complete">Complete</option>
+                            </lightning:select>
+                        </div><br/>
+                    </div>
+                </div>
+
+                <lightning:button label="{!$Label.c.KM_Save_Button}" variant="brand" onclick="{!c.handleSave}" />
+            </div>
+        </aura:if>
+
+        <aura:if isTrue="{!!v.isLoaded || v.showSpinner}">
+            <div class="demo-only demo-only demo-only_viewport demo--inverse" style="height:6rem">
+                <div class="slds-spinner_container slds-is-fixed">
+                    <div role="status" class="slds-spinner slds-spinner_medium">
+                        <span class="slds-assistive-text">Loading</span>
+                        <div class="slds-spinner__dot-a"></div>
+                        <div class="slds-spinner__dot-b"></div>
+                    </div>
+                </div>
+            </div>
+        </aura:if>
+    </div>
+
+</aura:component>

@@ -1,0 +1,901 @@
+<!--
+    Component: KMOrdersTab
+    Purpose: Component for Ordertab display
+    Author: Sreenivas (Keste)
+    Created Date: 29th May 2020
+-->
+<aura:component controller="KMOrderSummary">
+    <!--Attributes-->
+    <aura:attribute name="paymentmethods" type="List" />
+    <aura:attribute name="ordertypes" type="Object"/>
+    <aura:attribute name="newServiceCodeOptions" type="List" />
+    <aura:attribute name="newStopCodeOptions" type="List" />
+    <aura:attribute name="serviceCodes" type="Object"/>
+    <aura:attribute name="stopCodes" type="Object"/>
+    <aura:attribute name="selectAll" type="boolean" default="false"/>
+    <aura:attribute name="selectedProducts" type="Object[]"/>
+    <aura:attribute name="orderDetails" type="Object"/>
+    <aura:attribute name="estimatedTotal" type="Long" default="0"/>
+    <aura:attribute name="statusName" type="String" default="cart"/>
+    <aura:attribute name="minReqDate" type="date"/>
+    <aura:attribute name="maxReqDate" type="date"/>
+    <aura:attribute name="selectedFileName" type="String"/>
+    <aura:attribute name="uploadedFileName" type="String"/>
+    <aura:attribute name="inProgress" type="boolean" default="false"/>
+    <aura:attribute name="disableAttach" type="boolean" default="false"/>
+    <aura:attribute name="showSpinnerStatus" type="boolean" default="false"/>
+    <aura:attribute name="enableBackButton" type="boolean" default="false"/>
+    <aura:attribute name="backButtonData" type="Object"/>
+    <aura:attribute name="disableOrderTypesWithPP" type="boolean" default="false"/>
+    <!--Events Handerles-->
+    <aura:handler name="setOrderStatus" event="c:KMSetOrderStatus" action="{!c.setSeletedOrdersStatus}"/>
+    <aura:handler name="changeStatus" event="c:KMChangeStatus" action="{!c.changeOrderStatus}"/>
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:registerEvent name="backToPreviousTab" type="c:KMBackToPreviousTab"/>
+
+    <div aura:id="CartForm">
+        <aura:if isTrue="{!v.selectedProducts.length == 0}">
+            <div class="slds-grid slds-gutters slds-wrap">
+                <div class="slds-col slds-size_12-of-12 slds-m-top_x-small ">
+                    <div class="slds-box">
+                        <h2 class="slds-text-heading_small slds-align_absolute-center" title="{!$Label.c.KM_NoOrdersExistMsg}">
+                            <b>{!$Label.c.KM_NoOrdersExistMsg}</b>
+                        </h2>
+                    </div>
+                </div>
+            </div>
+        </aura:if>
+        <aura:if isTrue="{!v.selectedProducts.length > 0}">
+            <aura:if isTrue="{!v.statusName == 'cart'}">
+                <aura:if isTrue="{!v.enableBackButton}">
+                    <lightning:buttonIcon iconName="utility:back"  variant="border-filled" onclick="{!c.backToPreviousTab}" title="back" />
+                </aura:if>
+            </aura:if>
+            <!-- Status Path section -->
+            <div class="slds-grid slds-gutters">
+                <div class="slds-col slds-size_12-of-12 ">
+                    <c:KMStatusPath statusName="{!v.statusName}"/>
+                </div>
+            </div>
+            <div class="slds-grid slds-gutters slds-wrap">
+                <aura:if isTrue="{!v.statusName != 'confirmation'}">
+                    <div class="slds-col slds-size_8-of-12 slds-m-top_x-small slds-medium-size--1-of-1 slds-large-size--8-of-12">
+                        <!-- Cart section -->
+                        <aura:if isTrue="{!v.statusName == 'cart'}">
+                            <div class="slds-form--stacked slds-grid slds-gutters slds-grid--pull-padded">
+                                <div class="slds-col slds-size_12-of-12 slds-m-top_x-small">
+                                    <div class="slds-box">
+                                        <div class="" style="height:360px;">
+                                            <div class="slds-grid slds-gutters" style="margin-bottom: 10px;margin-left: 10px;">
+                                                <div class="slds-col slds-size_1-of-2" style="width: 42px;">
+                                                    <lightning:input variant="label-hidden" type="checkbox" label="" name="input1" checked="{!v.selectAll}" onclick="{!c.selectAllProducts}"/>
+                                                </div>
+                                                <div class="slds-col slds-size_1-of-2">
+                                                    <lightning:button label="{!$Label.c.KM_RemoveBtn}" title="Primary action" onclick="{!c.removeSelectedProducts}"></lightning:button>
+                                                </div>
+                                            </div>
+
+                                            <div class="slds-card slds-card_boundary">
+                                                <div class="" style="height:320px;">
+                                                    <div class="slds-scrollable_y" style="height:100%; overflow: auto;">
+                                                        <table class="slds-table slds-wrap slds-table--bordered slds-table--cell-buffer slds-table--striped--align-space slds-table--cell-buffer slds-max-medium-table--stacked-horizontal">
+                                                            <!-- <colgroup>
+                                                                <col style="width:5%"/>
+                                                                <col style="width:40%"/>
+                                                                <col style="width:20%"/>
+                                                                <col style="width:15%"/>
+                                                                <col style="width:20%"/>
+                                                            </colgroup> -->
+                                                            <thead>
+                                                                <tr class="slds-line-height_reset">
+                                                                    <th class="" scope="col">
+                                                                        <div class="slds-truncate" title="Select Product"></div>
+                                                                    </th>
+                                                                    <th class="" scope="row">
+                                                                        <div class="slds-truncate" title="{!$Label.c.KM_ProductLabel}">{!$Label.c.KM_ProductLabel}</div>
+                                                                    </th>
+                                                                    <th class="" scope="row">
+                                                                        <div class="slds-truncate" title="{!$Label.c.KM_Price}">{!$Label.c.KM_Price}</div>
+                                                                    </th>
+                                                                    <th class="" scope="row">
+                                                                        <div class="slds-truncate" title="{!$Label.c.KM_Quantity}">{!$Label.c.KM_QuantityLabel}</div>
+                                                                    </th>
+                                                                    <th class="" scope="row">
+                                                                        <div class="slds-truncate" title="{!$Label.c.KM_Lot_Number}">{!$Label.c.KM_Lot_Number}</div>
+                                                                    </th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <aura:iteration items="{!v.selectedProducts}" var="eachProduct">
+                                                                    <tr class="slds-hint-parent">
+                                                                        <td data-label="Select Product">
+                                                                            <div class="slds-truncate" >
+                                                                                <lightning:input variant="label-hidden" type="checkbox" label="" name="selected" checked="{!eachProduct.selected}"/>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td data-label="Product" scope="col">
+                                                                            <div class="slds-truncate" >
+                                                                                {!eachProduct.productName}<br/>
+                                                                                {!$Label.c.KM_Product} :{!eachProduct.productNumber}<br/>
+                                                                                {!$Label.c.KM_UnitSize} :{!eachProduct.unitSize}
+                                                                            </div>
+                                                                        </td>
+                                                                        <td data-label="Price" scope="col">
+                                                                            <div class="{!eachProduct.netPrice != null ? 'slds-truncate strikeout-unitprice':'slds-truncate'}" >
+                                                                                <lightning:formattedNumber value="{!eachProduct.unitPrice}" style="currency" currencyCode="{!eachProduct.currencyCode}"
+                                                                                currencyDisplayAs="code" minimumFractionDigits="0" maximumFractionDigits="0" />
+                                                                            </div>
+                                                                            <aura:if isTrue="{!eachProduct.netPrice != null}">
+                                                                                <div class="slds-truncate" >
+                                                                                    <lightning:formattedNumber value="{!eachProduct.netPrice}" style="currency" currencyCode="{!eachProduct.currencyCode}"
+                                                                                    currencyDisplayAs="code" minimumFractionDigits="0" maximumFractionDigits="0" />
+                                                                                </div>
+                                                                            </aura:if>
+                                                                        </td>
+                                                                        <td data-label="quantity" scope="col">
+                                                                            <lightning:input type="number" aura:id="custom_Valid_field" variant="label-hidden"
+                                                                            name="quantity" value="{!eachProduct.quantity}" min="1" max="999" required="true" onchange="{!c.calculateEstimatedTotal}"/>
+                                                                        </td>
+                                                                        <td data-label="lotNumber" scope="col">
+                                                                            <div class="slds-truncate" >
+                                                                                <lightning:input name="lotNumber" aura:id="custom_Valid_field" variant="label-hidden" value="{!eachProduct.lotNumber}"/>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                </aura:iteration>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </aura:if>
+                        <!-- Shipping and Payment section -->
+                        <aura:if isTrue="{!v.statusName == 'shippingPayment'}">
+                            <div class="slds-form--stacked slds-grid slds-gutters slds-grid--pull-padded">
+                                <div class="slds-col slds-size_12-of-12 slds-m-top_x-small">
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_ConfirmContact}">{!$Label.c.KM_ConfirmContact}</h2>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-2 slds-m-top_x-small slds-medium-size--1-of-2 slds-large-size--1-of-2">
+                                            <lightning:input name="contactName" aura:id="custom_Valid_field" label="{!$Label.c.KM_Contact_Name}" value="{!v.orderDetails.contactName}" required="true" maxlength="40" onchange="{!c.updateCartData}"/>
+                                            <lightning:input name="phoneNumber" aura:id="custom_Valid_field" label="{!$Label.c.KM_Phone_Number}" value="{!v.orderDetails.phoneNumber}" required="true" maxlength="40" onchange="{!c.updateCartData}"/>
+                                            <lightning:input type="email" aura:id="custom_Valid_field" name="emailAddress" label="{!$Label.c.KM_Email_Address}" value="{!v.orderDetails.emailAddress}" maxlength="40" onchange="{!c.updateCartData}"/>
+                                        </div>
+                                        <div class="slds-col slds-size_12-of-12 slds-m-top_x-small">
+                                            <fieldset class="slds-form-element slds-form-element_compound">
+                                                <div class="slds-form-element__control ">
+                                                    <div class="slds-form-element__row">
+                                                        <div class="slds-size_1-of-2">
+                                                            <div class="slds-form-element__label">&nbsp;</div>
+                                                            <div class="slds-form-element">
+                                                                <label class="slds-form-element__label" for="form-element-04">{!$Label.c.KM_DefaultBillToContactName}:</label>
+                                                                <div class="slds-form-element__control">
+                                                                    <lightning:formattedText value="{!v.orderDetails.defaultBillToContactName}"/>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="slds-size_1-of-2">
+                                                            <div class="slds-form-element__label" style="color: red;">
+                                                                {!$Label.c.KM_BTContactPermanentMsg}
+                                                            </div>
+                                                            <lightning:input name="newBillToContactName" label="{!$Label.c.KM_NewBillToContactName}"
+                                                            value="{!v.orderDetails.newBillToContactName}" maxlength="40" onchange="{!c.updateCartData}"/>
+                                                        </div>
+                                                    </div>
+                                                    <div class="slds-form-element__row">
+                                                        <div class="slds-size_1-of-2">
+                                                            <div class="slds-form-element">
+                                                                <label class="slds-form-element__label" for="form-element-05">{!$Label.c.KM_DefaultBillToContactEmail}:</label>
+                                                                <div class="slds-form-element__control">
+                                                                    <lightning:formattedText value="{!v.orderDetails.defaultBillToContactEmail}" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="slds-size_1-of-2">
+                                                            <lightning:input type="email" aura:id="custom_Valid_field" name="newBillToContactEmail" label="{!$Label.c.KM_NewBillToContactEmail}"
+                                                            value="{!v.orderDetails.newBillToContactEmail}" maxlength="40" onchange="{!c.updateCartData}"/>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                        </div>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_ConfirmShippingandBillingAddress}">{!$Label.c.KM_ConfirmShippingandBillingAddress}</h2>
+                                        </div>
+                                        <fieldset class="slds-form-element slds-form-element_compound">
+                                            <div class="slds-form-element__row ">
+                                                <div class="slds-size_1-of-2 slds-m-top_x-small ">
+                                                    <div class="slds-form-element">
+                                                        <label class="slds-form-element__label slds-panel__header" for="form-element-05">
+                                                            <b>{!$Label.c.KM_ShipTo} &nbsp;<lightning:formattedText value="{!v.orderDetails.shipToNumber}"/></b>
+                                                        </label>
+                                                    </div>
+                                                    <div class="slds-form-element">
+                                                        <label class="slds-form-element__label custom-header-padding" for="form-element-05">
+                                                            <lightning:formattedText value="{!v.orderDetails.shipToAlphaName}" />
+                                                        </label>
+                                                    </div>
+                                                    <div class="slds-form-element">
+                                                        <label class="slds-form-element__label custom-header-padding" for="form-element-05">
+                                                            <lightning:formattedText value="{!v.orderDetails.shipToName}" />
+                                                        </label>
+                                                    </div><br/>
+                                                    <div class="slds-form-element">
+                                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                                            <div class="slds-col slds-size_1-of-12 slds-m-top_x-small slds-medium-size--1-of-12 slds-large-size--1-of-12">
+                                                                <abbr class="slds-required" title="required">*</abbr>
+                                                            </div>
+                                                            <div class="slds-col slds-size_11-of-12 slds-medium-size--10-of-12 slds-large-size--10-of-12" style="padding-left: 0px;">
+                                                                <lightning:input aura:id="custom_Valid_field" variant="label-hidden" name="shipToAttention"
+                                                                label="shipToAttention" value="{!v.orderDetails.shipToAttention}" required="true" maxlength="40" onchange="{!c.updateCartData}"/>
+                                                            </div>
+                                                        </div>
+                                                    </div><br/>
+                                                    <div class="slds-form-element">
+                                                        <label class="slds-form-element__label custom-header-padding" for="form-element-05">
+                                                            {!v.orderDetails.shipToAddressLine1}&nbsp; {!v.orderDetails.shipToAddressLine2} &nbsp;
+                                                            {!v.orderDetails.shipToAddressLine3}&nbsp; {!v.orderDetails.shipToCity}&nbsp;
+                                                            {!v.orderDetails.shipToState} <br/>{!v.orderDetails.shipToPostalCode}<br/>
+                                                            {!v.orderDetails.shipToCountry}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="slds-size_1-of-2 slds-m-top_x-small">
+                                                    <div class="slds-form-element">
+                                                        <label class="slds-form-element__label slds-panel__header" for="form-element-05">
+                                                            <b>{!$Label.c.KM_Bill_To} &nbsp;<lightning:formattedText value="{!v.orderDetails.billToNumber}"/></b>
+                                                        </label>
+                                                    </div>
+                                                    <div class="slds-form-element">
+                                                        <label class="slds-form-element__label custom-header-padding" for="form-element-05">
+                                                            <lightning:formattedText value="{!v.orderDetails.billToName}" />
+                                                        </label>
+                                                    </div><br/>
+                                                    <div class="slds-form-element">
+                                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                                            <div class="slds-col slds-size_1-of-12 slds-m-top_x-small slds-medium-size--1-of-12 slds-large-size--1-of-12">
+                                                                <abbr class="slds-required" title="required">*</abbr>
+                                                            </div>
+                                                            <div class="slds-col slds-size_11-of-12 slds-medium-size--10-of-12 slds-large-size--10-of-12" style="padding-left: 0px;">
+                                                                <lightning:input aura:id="custom_Valid_field" variant="label-hidden" name="billToAttention"
+                                                                label="billToAttention" value="{!v.orderDetails.billToAttention}" required="true" maxlength="40" onchange="{!c.updateCartData}"/>
+                                                            </div>
+                                                        </div>
+                                                    </div><br/>
+                                                    <div class="slds-form-element">
+                                                        <label class="slds-form-element__label custom-header-padding" for="form-element-05">
+                                                            {!v.orderDetails.billToAddressLine1}&nbsp; {!v.orderDetails.billToAddressLine3} &nbsp;
+                                                            {!v.orderDetails.billToAddressLine3}&nbsp; {!v.orderDetails.billToCity}&nbsp;
+                                                            {!v.orderDetails.billToState} <br/>{!v.orderDetails.billToPostalCode}<br/>
+                                                            {!v.orderDetails.billToCountry}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_SelectOrderType}">
+                                                <abbr class="slds-required" title="required">*</abbr>{!$Label.c.KM_SelectOrderType}
+                                            </h2>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                            <div class="slds-col slds-size_1-of-1 slds-m-top_x-small slds-medium-size--1-of-1 slds-large-size--1-of-1">
+                                                <!-- Custom radiobutton implemention-->
+                                                <fieldset class="slds-form-element" aura:id="orderTypeFieldId">
+                                                    <div class="slds-form-element__control">
+                                                        <span class="slds-radio">
+                                                            <input type="radio" id="SO" name="ordertype" checked="{!v.orderDetails.orderType == 'SO'}"
+                                                            value="SO"  onchange="{!c.setOrderTypeValue}" disabled="{!or(v.orderDetails.orderType == 'T9',v.disableOrderTypesWithPP)}"/>
+                                                            <label class="slds-radio__label" for="SO">
+                                                                <span class="slds-radio_faux"></span>
+                                                                <span class="{!v.orderDetails.orderType == 'T9'|| v.disableOrderTypesWithPP ? 'slds-form-element__label custom-disable-option' : 'slds-form-element__label'}">
+                                                                    {!$Label.c.KM_SO_StandardOrder}
+                                                                </span>
+                                                            </label>
+                                                        </span>
+
+                                                        <!-- <span class="slds-radio">
+                                                            <input type="radio" id="SU" name="ordertype" checked="{!v.orderDetails.orderType == 'SU'}"
+                                                            value="SU" onchange="{!c.setOrderTypeValue}" disabled="{!v.orderDetails.orderType == 'T9'}"/>
+                                                            <label class="slds-radio__label" for="SU">
+                                                                <span class="slds-radio_faux"></span>
+                                                                <span class="{!v.orderDetails.orderType == 'T9' ? 'slds-form-element__label custom-disable-option' : 'slds-form-element__label'}">
+                                                                    {!$Label.c.KM_SU_PrepaidOrderforDeposit}
+                                                                </span>
+                                                            </label>
+                                                        </span> -->
+                                                        <!-- SU Order Type File upload code start -->
+                                                        <aura:if isTrue="{!v.orderDetails.orderType == 'SU'}">
+                                                            <div class="slds-panel__header"></div>
+                                                            <div class="slds-col slds-size_12-of-12 slds-m-top_x-small">
+                                                                <fieldset class="slds-form-element slds-form-element_compound">
+                                                                    <div class="slds-form-element__control ">
+                                                                        <div class="slds-form-element__row ">
+                                                                            <div class="slds-size_1-of-2">
+                                                                                <div class="slds-form-element">
+                                                                                    <label class="slds-form-element__label">
+                                                                                        {!$Label.c.KM_Attachments}
+                                                                                    </label>
+                                                                                    <lightning:input aura:id="fileInputFieldId" name="SUOrderFile" type="file" label="Choose a file to attach"
+                                                                                    multiple="false" onchange="{!c.handleFilesChange}" disabled="{!v.disableAttach}"/>
+                                                                                    <div class="slds-text-body_small">
+                                                                                        {!$Label.c.KM_Selectedfileattachments}:<br/>
+                                                                                        <lightning:formattedText value="{!v.selectedFileName}"/>
+                                                                                    </div>
+                                                                                    <div class="slds-text-body_small slds-m-top_small">
+                                                                                        {!$Label.c.KM_Uploadedfileattachments}:<br/>
+                                                                                        <lightning:formattedText value="{!v.uploadedFileName}"/>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="slds-size_1-of-2">
+                                                                                <lightning:input type="number" label="{!$Label.c.KM_Estimatedtotal}" name="quantity"
+                                                                                value="{!v.estimatedTotal}" disabled="{!v.inProgress}" onchange="{!c.saveEstTotalOrderObj}"/><br/>
+                                                                                <lightning:button label="{!$Label.c.KM_AttachBtn}" name="addAttachement"
+                                                                                class="slds-m-left_xx-small" onclick="{!c.addAttachments}" disabled="{!v.disableAttach}"> </lightning:button>
+                                                                                <lightning:button label="{!$Label.c.KM_RemoveBtn}" name="removeAttachement" disabled="{!v.inProgress}"
+                                                                                class="slds-m-left_xx-small" onclick="{!c.removeAttachments}"></lightning:button>
+                                                                                <span style="margin-left: 15px;">
+                                                                                    <aura:if isTrue="{!v.inProgress}">
+                                                                                            <div style="position:relative;display:inline-block"><lightning:spinner variant="brand" size="small"></lightning:spinner></div>
+                                                                                    </aura:if>
+                                                                                    <aura:if isTrue="{!v.inProgress}">
+                                                                                    <div style="position:relative;display:inline-block;margin-left: 20px;">{!$Label.c.KM_UploadingFileMsg}</div>
+                                                                                    </aura:if>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </fieldset>
+                                                            </div>
+                                                            <div class="slds-panel__header slds-m-bottom_x-small"></div>
+                                                        </aura:if>
+                                                        <!-- SU Order Type File upload code start end -->
+                                                        <span class="slds-radio">
+                                                            <input type="radio" id="SE" name="ordertype" checked="{!v.orderDetails.orderType == 'SE'}"
+                                                            value="SE"  onchange="{!c.setOrderTypeValue}" disabled="{!v.orderDetails.orderType == 'T9'}"/>
+                                                            <label class="slds-radio__label" for="SE">
+                                                                <span class="slds-radio_faux"></span>
+                                                                <span class="{!v.orderDetails.orderType == 'T9' ? 'slds-form-element__label custom-disable-option' : 'slds-form-element__label'}">
+                                                                    {!$Label.c.KM_SE_PrepaidOrder}
+                                                                </span>
+                                                            </label>
+                                                        </span>
+                                                        <div class="slds-form-element__label">
+                                                            {!$Label.c.KM_SUOrderTypeInfoMsg}
+                                                        </div>
+                                                        <span class="slds-radio">
+                                                            <input type="radio" id="TC" name="ordertype" checked="{!v.orderDetails.orderType == 'TC'}"
+                                                            value="TC"  onchange="{!c.setOrderTypeValue}" disabled="{!or(v.orderDetails.orderType == 'T9',v.disableOrderTypesWithPP)}"/>
+                                                            <label class="slds-radio__label" for="TC">
+                                                                <span class="slds-radio_faux"></span>
+                                                                <span class="{!v.orderDetails.orderType == 'T9' || v.disableOrderTypesWithPP ? 'slds-form-element__label custom-disable-option' : 'slds-form-element__label'}">
+                                                                    {!$Label.c.KM_TC_DeferredPaymentOrder}
+                                                                </span>
+                                                            </label>
+                                                        </span>
+                                                        <span class="slds-radio">
+                                                            <input type="radio" id="T9" name="ordertype" checked="{!v.orderDetails.orderType == 'T9'}"
+                                                            value="T9"  onchange="{!c.setOrderTypeValue}" disabled="{!v.orderDetails.orderType != 'T9'}"/>
+                                                            <label class="slds-radio__label" for="T9">
+                                                                <span class="slds-radio_faux"></span>
+                                                                <span class="{!v.orderDetails.orderType != 'T9' ? 'slds-form-element__label custom-disable-option' : 'slds-form-element__label'}">
+                                                                    {!$Label.c.KM_T9_DeferredInvoiceOrder}
+                                                                </span>
+                                                            </label>
+                                                        </span>
+                                                    </div>
+                                                </fieldset>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_OrderFormState}">{!$Label.c.KM_OrderFormState}</h2>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                            <div class="slds-col slds-size_1-of-4 slds-m-top_x-small slds-medium-size--1-of-2 slds-large-size--1-of-4">
+                                                <div class="slds-form-element">
+                                                    <lightning:select name="select1" value="{!v.orderDetails.orderFromState}" onchange="{!c.updateCartData}">
+                                                        <option value="Pending">{!$Label.c.KM_Pending}</option>
+                                                        <option value="Complete">{!$Label.c.KM_Complete}</option>
+                                                    </lightning:select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_SelectPaymentMethod}">
+                                                <abbr class="slds-required" title="required">*</abbr>{!$Label.c.KM_SelectPaymentMethod}
+                                            </h2>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                            <div class="slds-col slds-size_1-of-2 slds-m-top_x-small slds-medium-size--1-of-1 slds-large-size--1-of-2">
+                                                <div class="slds-form-element">
+                                                    <lightning:radioGroup aura:id="custom_Valid_field" class="custom_radio_required" name="mypaymentmethod" label="" options="{!v.paymentmethods}"
+                                                    value="{!v.orderDetails.paymentMethod}" type="radio" required="true" onchange="{!c.updateCartData}"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                            <div class="slds-col slds-size_1-of-2 slds-m-top_x-small slds-medium-size--1-of-2 slds-large-size--1-of-2">
+                                                <lightning:input name="poOrRefNumber" aura:id="custom_Valid_field" label="{!$Label.c.KM_PORefNumber}"
+                                                value="{!v.orderDetails.poOrRefNumber}" required="true" onchange="{!c.updateCartData}" maxlength="27"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_OrderPreference}">{!$Label.c.KM_OrderPreference}</h2>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                            <div class="slds-col slds-size_6-of-12 slds-m-top_x-small slds-medium-size--1-of-2 slds-large-size--1-of-2">
+                                                <lightning:input type="checkbox" label="{!$Label.c.KM_ShipComplete}" checked="{!v.orderDetails.shipComplete}" onchange="{!c.setMinMaxDateValues}"/>
+                                            </div>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row slds-m-top_x-small">
+                                            <div class="slds-col slds-size_1-of-2 slds-medium-size--1-of-2 slds-large-size--1-of-2">
+                                                <aura:if isTrue="{!v.orderDetails.shipComplete}">
+                                                    <lightning:input type="date" name="requestDeleveryDate" aura:id="custom_Valid_field" label="{!$Label.c.KM_RequestDeleveryDate}" value="{!v.orderDetails.requestDeleveryDate}"
+                                                    required="{!v.orderDetails.shipComplete}" onchange="{!c.setRequestDeleveryDate}" min="{!v.minReqDate}" max="{!v.maxReqDate}"/>
+                                                    <aura:set attribute="else">
+                                                        <lightning:input type="date" name="requestDeleveryDate" label="{!$Label.c.KM_RequestDeleveryDate}"
+                                                        value="{!v.orderDetails.requestDeleveryDate}" disabled="true"/>
+                                                    </aura:set>
+                                                </aura:if>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-2 slds-medium-size--1-of-2 slds-large-size--1-of-2 slds-m-top_xx-small">
+                                                <lightning:button variant="brand" label="{!$Label.c.KM_ResetBtn}" name="reset" title="Reset" class="slds-m-top_medium"
+                                                onclick="{!c.resetRequestDeleveryDate}" disabled="{!!v.orderDetails.shipComplete}"></lightning:button>
+                                            </div>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                            <div class="slds-col slds-size_1-of-2 slds-medium-size--1-of-1 slds-large-size--1-of-2 slds-m-top_xx-small">
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label custom-label-alignment" >
+                                                        {!$Label.c.KM_DefaultStopCode}: <lightning:formattedText value="{!v.orderDetails.defaultStopCodeLabel}" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-2 slds-medium-size--1-of-1 slds-large-size--1-of-2 slds-m-top_xx-small">
+                                                <div class="slds-grid slds-wrap slds-form-element__row">
+                                                    <div class="slds-col slds-size_2-of-5">
+                                                        <div class="slds-form-element">
+                                                            <label class="slds-form-element__label custom-label-alignment" style="width: 100px; margin-left: -11px;">
+                                                                {!$Label.c.KM_NewStopCode}:
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="slds-col slds-size_3-of-5">
+                                                        <div class="slds-form-element">
+                                                            <lightning:combobox class="custom-combobox-alignment" variant="label-hidden" name="newStopCode" label="{!$Label.c.KM_NewStopCode}"
+                                                            value="{!v.orderDetails.newStopCode}" placeholder="Select a Stop Code" options="{!v.newStopCodeOptions}" onchange="{!c.updateCartData}"/>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                            <div class="slds-col slds-size_1-of-2 slds-medium-size--1-of-1 slds-large-size--1-of-2 slds-m-top_xx-small">
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label custom-label-alignment" >
+                                                        {!$Label.c.KM_DefaultServiceCode}: <lightning:formattedText value="{!v.orderDetails.defaultServiceCodeLabel}" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-2 slds-medium-size--1-of-1 slds-large-size--1-of-2 slds-m-top_xx-small">
+                                                <div class="slds-grid slds-wrap slds-form-element__row">
+                                                    <div class="slds-col slds-size_2-of-5">
+                                                        <div class="slds-form-element">
+                                                            <label class="slds-form-element__label custom-label-alignment" style="width: 115px; margin-left: -11px;">
+                                                                {!$Label.c.KM_NewServiceCode}:
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="slds-col slds-size_3-of-5">
+                                                        <div class="slds-form-element">
+                                                            <lightning:combobox class="custom-combobox-alignment" variant="label-hidden" name="newServiceCode" label="{!$Label.c.KM_NewServiceCode}"
+                                                            value="{!v.orderDetails.newServiceCode}" placeholder="Select a Service Code" options="{!v.newServiceCodeOptions}" onchange="{!c.updateCartData}"/>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_SpecialInstructions}">{!$Label.c.KM_SpecialInstructions}</h2>
+                                        </div>
+                                        <div class="slds-col slds-size_12-of-12 slds-m-top_x-small">
+                                            <lightning:textarea value="{!v.orderDetails.specialInstructions}" maxlength="2000" onchange="{!c.updateCartData}"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </aura:if>
+                        <!-- Review section -->
+                        <aura:if isTrue="{!v.statusName == 'review'}">
+                            <div class="slds-box">
+                                <div class="" style="height:300px;">
+                                    <div class="slds-card slds-card_boundary">
+                                        <div class="" style="height:305px;">
+                                            <div class="slds-scrollable_y" style="height:100%; overflow: auto;">
+                                                <table class="slds-table slds-wrap slds-table--bordered slds-table--cell-buffer slds-table--striped--align-space slds-table--cell-buffer slds-max-medium-table--stacked-horizontal">
+                                                    <!-- <colgroup>
+                                                        <col style="width:50%"/>
+                                                        <col style="width:10%"/>
+                                                        <col style="width:10%"/>
+                                                        <col style="width:20%"/>
+                                                    </colgroup> -->
+                                                    <thead>
+                                                        <tr class="slds-line-height_reset">
+                                                            <th class="" scope="row">
+                                                                <div class="slds-truncate" title="{!$Label.c.KM_ProductLabel}">{!$Label.c.KM_ProductLabel}</div>
+                                                            </th>
+                                                            <th class="" scope="row">
+                                                                <div class="slds-truncate" title="{!$Label.c.KM_Price}">{!$Label.c.KM_Price}</div>
+                                                            </th>
+                                                            <th class="" scope="row">
+                                                                <div class="slds-truncate" title="{!$Label.c.KM_Quantity}">{!$Label.c.KM_QuantityLabel}</div>
+                                                            </th>
+                                                            <th class="" scope="row">
+                                                                <div class="slds-truncate" title="{!$Label.c.KM_Lot_Number}">{!$Label.c.KM_Lot_Number}</div>
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <aura:iteration items="{!v.selectedProducts}" var="eachProduct">
+                                                            <tr class="slds-hint-parent">
+                                                                <td data-label="Product">
+                                                                    <div class="slds-truncate" >
+                                                                        {!eachProduct.productName}<br/>
+                                                                        {!$Label.c.KM_Product} :{!eachProduct.productNumber}<br/>
+                                                                        {!$Label.c.KM_UnitSize} :{!eachProduct.unitSize}
+                                                                    </div>
+                                                                </td>
+                                                                <td data-label="Price">
+                                                                    <div class="slds-truncate" >
+                                                                        <lightning:formattedNumber value="{!eachProduct.unitPrice}" style="currency" currencyCode="{!eachProduct.currencyCode}"
+                                                                        currencyDisplayAs="code" minimumFractionDigits="0" maximumFractionDigits="0" />
+                                                                    </div>
+                                                                </td>
+                                                                <td data-label="quantity">
+                                                                    <div class="slds-truncate" >
+                                                                        {!eachProduct.quantity}
+                                                                    </div>
+                                                                </td>
+                                                                <td data-label="lotNumber">
+                                                                    <div class="slds-truncate" >
+                                                                        {!eachProduct.lotNumber}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        </aura:iteration>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <br/>
+                            <div class="slds-form--stacked slds-grid slds-gutters slds-grid--pull-padded">
+                                <div class="slds-col slds-size_12-of-12 slds-m-top_x-small">
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_Contact_Header}">{!$Label.c.KM_Contact_Header}</h2>
+                                        </div>
+                                        <div class="slds-grid slds-wrap">
+                                            <div class="slds-col slds-size_1-of-2 slds-m-top_x-small">
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-01">
+                                                        <b>{!$Label.c.KM_Contact_Name}: </b><lightning:formattedText value="{!v.orderDetails.contactName}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-02">
+                                                        <b>{!$Label.c.KM_Phone_Number}: </b><lightning:formattedText value="{!v.orderDetails.phoneNumber}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_Email_Address}: </b><lightning:formattedText value="{!v.orderDetails.emailAddress}" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-2 slds-m-top_x-small">
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-01">
+                                                        <b>{!$Label.c.KM_DefaultBillToContactName}: </b><lightning:formattedText value="{!v.orderDetails.defaultBillToContactName}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-02">
+                                                        <b>{!$Label.c.KM_DefaultBillToContactEmail}: </b><lightning:formattedText value="{!v.orderDetails.defaultBillToContactEmail}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_NewBillToContactName}: </b><lightning:formattedText value="{!v.orderDetails.newBillToContactName}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_NewBillToContactEmail}: </b><lightning:formattedText value="{!v.orderDetails.newBillToContactEmail}" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_ShippingandBillingAddress}">{!$Label.c.KM_ShippingandBillingAddress}</h2>
+                                        </div>
+                                        <div class="slds-grid slds-wrap">
+                                            <div class="slds-col slds-size_1-of-2 slds-m-top_x-small">
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-01">
+                                                        <b>{!$Label.c.KM_ShipTo}: </b><lightning:formattedText value="{!v.orderDetails.shipToNumber}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-02">
+                                                        <b>{!$Label.c.KM_ShipToAlphaName}: </b><lightning:formattedText value="{!v.orderDetails.shipToAlphaName}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_ShipToName}: </b><lightning:formattedText value="{!v.orderDetails.shipToName}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_Attention}: </b><lightning:formattedText value="{!v.orderDetails.shipToAttention}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_AddressLine1}: </b><lightning:formattedText value="{!v.orderDetails.shipToAddressLine1}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_AddressLine2}: </b><lightning:formattedText value="{!v.orderDetails.shipToAddressLine2}"/>
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_AddressLine3}: </b><lightning:formattedText value="{!v.orderDetails.shipToAddressLine3}"/>
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_CityStatePostcode}: </b><lightning:formattedText value="{!v.orderDetails.shipToCity}"/>
+                                                        &nbsp;<lightning:formattedText value="{!v.orderDetails.shipToState}"/>
+                                                        &nbsp;<lightning:formattedText value="{!v.orderDetails.shipToPostalCode}"/>
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_Country}: </b><lightning:formattedText value="{!v.orderDetails.shipToCountry}" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-2 slds-m-top_x-small">
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-01">
+                                                        <b>{!$Label.c.KM_Bill_To}: </b><lightning:formattedText value="{!v.orderDetails.billToNumber}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_BillToName}: </b><lightning:formattedText value="{!v.orderDetails.billToName}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_Attention}: </b><lightning:formattedText value="{!v.orderDetails.billToAttention}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_AddressLine1}: </b><lightning:formattedText value="{!v.orderDetails.billToAddressLine1}" />
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_AddressLine2}: </b><lightning:formattedText value="{!v.orderDetails.billToAddressLine2}"/>
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_AddressLine3}: </b><lightning:formattedText value="{!v.orderDetails.billToAddressLine3}"/>
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_CityStatePostcode}: </b><lightning:formattedText value="{!v.orderDetails.billToCity}"/>
+                                                        &nbsp;<lightning:formattedText value="{!v.orderDetails.billToState}"/>
+                                                        &nbsp;<lightning:formattedText value="{!v.orderDetails.billToPostalCode}"/>
+                                                    </label>
+                                                </div>
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" for="form-element-03">
+                                                        <b>{!$Label.c.KM_Country}: </b><lightning:formattedText value="{!v.orderDetails.billToCountry}" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_OrderType}">{!$Label.c.KM_OrderType}</h2>
+                                        </div>
+                                        <div class="slds-form-element__row">
+                                            <div class="slds-col slds-size_1-of-1 slds-m-top_x-small">
+                                                <div class="slds-form-element">
+                                                    <lightning:formattedText value="{!v.orderDetails.orderTypeLabel}" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_OrderFormState}">{!$Label.c.KM_OrderFormState}</h2>
+                                        </div>
+                                        <div class="slds-form-element__row">
+                                            <div class="slds-col slds-size_1-of-1 slds-m-top_x-small">
+                                                <div class="slds-form-element">
+                                                    <lightning:formattedText value="{!v.orderDetails.orderFromState}" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_PaymentMethod}">{!$Label.c.KM_PaymentMethod}</h2>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                            <div class="slds-col slds-size_3-of-12 slds-medium-size--5-of-12 slds-large-size--3-of-12">
+                                                <label class="slds-form-element__label " >
+                                                    <b>{!$Label.c.KM_PaymentMethod}:</b>
+                                                </label>
+                                            </div>
+                                            <div class="slds-col slds-size_9-of-12 slds-medium-size--7-of-12 slds-large-size--9-of-12">
+                                                <div class="slds-p-top_xxx-small">
+                                                    {!v.orderDetails.paymentMethod}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                            <div class="slds-col slds-size_3-of-12 slds-medium-size--5-of-12 slds-large-size--3-of-12">
+                                                <label class="slds-form-element__label " >
+                                                    <b>{!$Label.c.KM_PORefNumber}:</b>
+                                                </label>
+                                            </div>
+                                            <div class="slds-col slds-size_9-of-12 slds-medium-size--7-of-12 slds-large-size--9-of-12">
+                                                <div class="slds-p-top_xxx-small">
+                                                    {!v.orderDetails.poOrRefNumber}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_OrderPreference}">{!$Label.c.KM_OrderPreference}</h2>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-1 slds-m-top_x-small">
+                                            <lightning:input type="checkbox" label="{!$Label.c.KM_ShipComplete}" name="shipComplete" checked="{!v.orderDetails.shipComplete}" disabled="true"/>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-1 slds-m-top_x-small">
+                                            <div class="slds-form-element">
+                                                <label class="slds-form-element__label" for="form-element-01">
+                                                    <b>{!$Label.c.KM_RequestDeleveryDate}: </b><lightning:formattedText value="{!v.orderDetails.requestDeleveryDate}" />
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                            <div class="slds-col slds-size_1-of-2 slds-medium-size--1-of-1 slds-large-size--1-of-2">
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" >
+                                                        <b>{!$Label.c.KM_DefaultStopCode}: </b><lightning:formattedText value="{!v.orderDetails.defaultStopCodeLabel}" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-2 slds-medium-size--1-of-1 slds-large-size--1-of-2 ">
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label " >
+                                                        <b>{!$Label.c.KM_NewStopCode}: </b><lightning:formattedText value="{!v.orderDetails.newStopCodeLabel}" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="slds-grid slds-wrap slds-form-element__row">
+                                            <div class="slds-col slds-size_1-of-2 slds-medium-size--1-of-1 slds-large-size--1-of-2">
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" >
+                                                        <b>{!$Label.c.KM_DefaultServiceCode}: </b><lightning:formattedText value="{!v.orderDetails.defaultServiceCodeLabel}" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-2 slds-medium-size--1-of-1 slds-large-size--1-of-2">
+                                                <div class="slds-form-element">
+                                                    <label class="slds-form-element__label" >
+                                                        <b>{!$Label.c.KM_NewServiceCode}: </b><lightning:formattedText value="{!v.orderDetails.newServiceCodeLabel}" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br/>
+                                    <div class="slds-box">
+                                        <div class="slds-panel__header">
+                                            <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="{!$Label.c.KM_SpecialInstructions}">{!$Label.c.KM_SpecialInstructions}</h2>
+                                        </div>
+                                        <div class="slds-col slds-size_12-of-12 slds-m-top_x-small">
+                                            <lightning:formattedText value="{!v.orderDetails.specialInstructions}" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </aura:if>
+                    </div>
+                    <!-- OrderSummary section -->
+                    <div class="slds-col slds-size_4-of-12 slds-m-top_x-small slds-medium-size--1-of-1 slds-large-size--4-of-12">
+                        <c:KMOrderSummary estimatedTotal="{!v.estimatedTotal}" currencyCode="KRW" statusName="{!v.statusName}"
+                        shipToNumber="{!v.orderDetails.shipToNumber}" promotionType="{!v.orderDetails.promotionType}"
+                        quote="{!v.orderDetails.quote}" promotionCode="{!v.orderDetails.promotionCode}"/>
+                    </div>
+                </aura:if>
+                <!-- Confirmation section -->
+                <aura:if isTrue="{!v.statusName == 'confirmation'}">
+                    <div class="slds-col slds-size_12-of-12 slds-m-top_x-small">
+                        <div class="slds-box">
+                            <h2 class="slds-text-heading_small slds-m-left_small" title="{!$Label.c.KM_OrderConfirmation}">
+                                <b>{!$Label.c.KM_OrderConfirmation}</b>
+                            </h2>
+                            <div class="slds-col slds-size_12-of-12 slds-m-top_x-small">
+                                {!$Label.c.KM_OrderConfirmationMsg1}&nbsp;{!v.orderDetails.poOrRefNumber}&nbsp;{!$Label.c.KM_OrderConfirmationMsg2}<br/>
+                                {!$Label.c.KM_OrderConfirmationMsg3}
+                            </div>
+                        </div>
+                    </div>
+                </aura:if>
+            </div>
+        </aura:if>
+    </div>
+    <!-- START SPINNER PANEL-->
+    <aura:if isTrue="{!v.showSpinnerStatus}">
+        <div class="demo-only demo-only demo-only_viewport demo--inverse">
+            <div class="slds-spinner_container slds-is-fixed">
+                <div role="status" class="slds-spinner slds-spinner_medium">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+</aura:component>
